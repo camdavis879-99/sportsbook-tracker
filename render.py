@@ -6,8 +6,11 @@ Defaults: today.json in the current directory, dist/index.html, and
 nfl.json in the current directory when present (NFL section omitted
 when it is absent). NHL FanDuel odds show lines only, never prices.
 The Model block shows vig-free implied probabilities and edges derived
-from moneylines, never the raw moneyline prices themselves, and never
-anything about the user's own betting (no bankroll, stakes, or picks).
+from moneylines, never the raw moneyline prices themselves.
+A Picks section appears only when a picks.json dated today is present:
+it names suggested bets (never bankroll or stakes, and never bets
+placed) with their morning prices and model probabilities. Picks for
+any other date are ignored, so a stale file can never render.
 The SOG watch block shows each team's top two shooters by shots on goal
 per game and the shots per game the opposing team allows.
 """
@@ -15,6 +18,8 @@ import html
 import json
 import os
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 SCALE = 5.0
@@ -241,6 +246,71 @@ def nfl_section(nfl):
     )
 
 
+def fmt_odds(v):
+    v = int(v)
+    return f"+{v}" if v > 0 else str(v)
+
+
+def picks_section():
+    """Render tonight's picks from picks.json, or "" when absent or stale.
+
+    picks.json lives beside this script (repo root in the workflow) and
+    carries a Phoenix date. Only a file dated today renders, so
+    yesterday's picks can never appear on today's page. The section
+    names suggestions only: no bankroll, no stakes, nothing placed.
+    """
+    picks = None
+    for path in ("picks.json", os.path.join(os.path.dirname(__file__), "picks.json")):
+        try:
+            with open(path) as f:
+                picks = json.load(f)
+            break
+        except Exception:
+            picks = None
+    if not picks:
+        return ""
+    try:
+        today = datetime.now(ZoneInfo("America/Phoenix")).date().isoformat()
+    except Exception:
+        return ""
+    if picks.get("date") != today:
+        return ""
+    straights = picks.get("straights") or []
+    p2 = picks.get("parlay2") or {}
+    p3 = picks.get("parlay3") or {}
+    if not straights and not p2.get("legs") and not p3.get("legs"):
+        return ""
+    parts = [
+        '<h2 class="section-title">Tonight\'s picks</h2>',
+        '<p class="section-note">Suggestions identified from the model and the morning lines, not bets placed. Lines move during the day; check the book before staking. No bankroll or stakes are shown here.</p>',
+        '<div class="picks">',
+    ]
+    for s in straights:
+        prob = f" · model {s['model_prob']:.0%}" if s.get("model_prob") is not None else ""
+        parts.append(
+            f'<div class="pick"><span class="pick-kind">Straight</span> '
+            f'<span class="pick-label">{html.escape(s["label"])} {fmt_odds(s["odds"])}</span>{prob} '
+            f'<span class="pick-reason">{html.escape(s.get("reason", ""))}</span></div>'
+        )
+    for kind, p in (("2-leg parlay", p2), ("3-leg parlay", p3)):
+        legs = p.get("legs") or []
+        if not legs:
+            continue
+        leg_txt = " + ".join(
+            f'{html.escape(l["label"])} {fmt_odds(l["odds"])}' for l in legs
+        )
+        prob = f" · model {p['model_prob']:.0%}" if p.get("model_prob") is not None else ""
+        parts.append(
+            f'<div class="pick"><span class="pick-kind">{kind}</span> '
+            f'<span class="pick-label">{leg_txt} = {fmt_odds(p["odds"])}</span>{prob} '
+            f'<span class="pick-reason">{html.escape(p.get("reason", ""))}</span></div>'
+        )
+    if picks.get("as_of"):
+        parts.append(f'<div class="pick-asof">{html.escape(picks["as_of"])}</div>')
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
 BET_TYPES = """<h2 class="section-title">Which bets pay the book the most?</h2>
 <div class="bet-types">
 <p>Sportsbooks keep a cut of every dollar wagered, called the hold. On straight bets (one team, one total, one spread) the hold runs roughly 4 to 6 percent. On parlays it runs roughly 18 to 30 percent. Parlays are about a third of the money wagered but roughly 60 to 65 percent of sportsbook revenue.</p>
@@ -301,6 +371,12 @@ h1 {{ margin: 0 0 4px; font-size: 28px; }}
 .sog-title {{ font-weight: 600; color: var(--muted); }}
 .stars {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.5; }}
 .stars-title {{ font-weight: 600; color: var(--muted); }}
+.picks {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; line-height: 1.6; margin-bottom: 24px; }}
+.pick {{ margin: 10px 0; font-size: 14px; }}
+.pick-kind {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #dbeafe; color: #1e40af; margin-right: 6px; }}
+.pick-label {{ font-weight: 600; }}
+.pick-reason {{ color: var(--muted); display: block; font-size: 13px; }}
+.pick-asof {{ color: var(--muted); font-size: 13px; margin-top: 10px; }}
 footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
 @media (max-width: 520px) {{
   .bar-label {{ width: 86px; font-size: 13px; }}
@@ -322,6 +398,7 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 <p>Model: xGF/xGA are MoneyPuck all-situations expected goals per game; PP/PK are season-to-date; rest is days since the last game. Win % is a Poisson model on venue-split goals with ties split, and edge is the model minus the vig-free FanDuel moneyline probability. Goalie edge is the starter's save % minus the opposing starter's, shown for context and not folded into the model. "No line" means no FanDuel moneyline was available.</p>
 <p>SOG watch lists each team's top two shooters by shots on goal per game (minimum 5 games played) and the shots per game the opposing team allows.</p>
 </div>
+{picks_section}
 <div class="grid">
 {cards}
 </div>
@@ -353,6 +430,7 @@ def main():
     out = PAGE.format(
         date=html.escape(data["date"]),
         cards=cards,
+        picks_section=picks_section(),
         nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
     )
