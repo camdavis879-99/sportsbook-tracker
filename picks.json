@@ -1,1 +1,58 @@
-{"as_of":"FanDuel prices via ParlayAPI, morning Nov 4, 2026 (Phoenix). Lines move; check the book before staking.","date":"2026-11-04","parlay2":{"legs":[{"label":"San Jose Sharks +1.5 at Los Angeles Kings","odds":-184},{"label":"Florida Panthers over 5.5 goals vs Chicago Blackhawks","odds":-138}],"model_prob":0.541,"odds":166,"reason":"The two likeliest value legs, from different games."},"parlay3":{"legs":[{"label":"San Jose Sharks +1.5 at Los Angeles Kings","odds":-184},{"label":"Florida Panthers over 5.5 goals vs Chicago Blackhawks","odds":-138},{"label":"Seattle Kraken -1.5 vs Calgary Flames","odds":176}],"model_prob":0.242,"odds":635,"reason":"Adds Seattle -1.5 to the two-legger for plus money; all three legs are model-value plays."},"straights":[{"label":"Florida Panthers over 5.5 goals vs Chicago Blackhawks","model_prob":0.68,"odds":-138,"reason":"Florida scores 4.0 per game at home and Chicago allows 4.7 on the road; model total is 6.85 goals against a 5.5 line."},{"label":"San Jose Sharks +1.5 at Los Angeles Kings","model_prob":0.796,"odds":-184,"reason":"Model gives San Jose a 57.9% win chance against a 40.2% vig-free market; Los Angeles scores just 2.2 per game at home and kills only 61.5% of penalties."},{"label":"Seattle Kraken -1.5 vs Calgary Flames","model_prob":0.447,"odds":176,"reason":"Seattle wins 67.7% in the model and Calgary scores 1.7 per game on the road; plus money on a 44.7% model cover chance."}]}
+{
+  "date": "2026-11-05",
+  "as_of": "FanDuel prices via ParlayAPI, morning Nov 5, 2026 (Phoenix). Lines move; check the book before staking.",
+  "straights": [
+    {
+      "label": "Anaheim Ducks +1.5 at Edmonton Oilers",
+      "odds": -164,
+      "model_prob": 0.7494,
+      "reason": "Model gives Anaheim Ducks a 74.9% cover chance; Anaheim Ducks scores 3.5 per game on the road and Edmonton Oilers allows 3.8 per game at home."
+    },
+    {
+      "label": "Pittsburgh Penguins vs Boston Bruins under 6.5",
+      "odds": -115,
+      "model_prob": 0.6544,
+      "reason": "Model total is 5.70 goals against a 6.5 line (65.4% model under chance); Boston Bruins scores 2.9 per game on the road, Pittsburgh Penguins scores 3.1 per game at home."
+    },
+    {
+      "label": "New York Rangers -1.5 vs Philadelphia Flyers",
+      "odds": 158,
+      "model_prob": 0.5082,
+      "reason": "Model gives New York Rangers a 50.8% cover chance; New York Rangers scores 4.0 per game at home and Philadelphia Flyers allows 3.1 per game on the road."
+    }
+  ],
+  "parlay2": {
+    "legs": [
+      {
+        "label": "Anaheim Ducks +1.5 at Edmonton Oilers",
+        "odds": -164
+      },
+      {
+        "label": "Pittsburgh Penguins vs Boston Bruins under 6.5",
+        "odds": -115
+      }
+    ],
+    "model_prob": 0.49,
+    "odds": 201,
+    "reason": "The two likeliest value legs, from different games."
+  },
+  "parlay3": {
+    "legs": [
+      {
+        "label": "Anaheim Ducks +1.5 at Edmonton Oilers",
+        "odds": -164
+      },
+      {
+        "label": "Pittsburgh Penguins vs Boston Bruins under 6.5",
+        "odds": -115
+      },
+      {
+        "label": "New York Rangers -1.5 vs Philadelphia Flyers",
+        "odds": 158
+      }
+    ],
+    "model_prob": 0.249,
+    "odds": 677,
+    "reason": "Adds the third straight to the two-legger; all three legs are model-value plays."
+  }
+}
