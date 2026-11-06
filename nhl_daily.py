@@ -145,6 +145,7 @@ def main():
             except Exception as _e:
                 dbg("an odds next_data parse failed:", type(_e).__name__, str(_e)[:200])
     averages = {}
+    league = []
     standings = fetch_json(f"{NHL}/standings/now")
     if standings:
         for row in standings.get("standings", []):
@@ -154,6 +155,17 @@ def main():
                 gf = row.get("goalFor", row.get("goalsFor", 0))
                 ga = row.get("goalAgainst", row.get("goalsAgainst", 0))
                 averages[abbr] = (gf / gp, ga / gp)
+                gf = gf or 0
+                ga = ga or 0
+                team_name = (row.get("teamName") or {}).get("default", "") or abbr
+                league.append({
+                    "team": team_name,
+                    "abbr": abbr,
+                    "gp": gp,
+                    "avg_total": round((gf + ga) / gp, 2),
+                    "plusminus": gf - ga,
+                })
+    league.sort(key=lambda t: t["avg_total"], reverse=True)
 
     # League ranks: GF rank 1 = most goals scored per game; GA rank 1 =
     # fewest goals allowed per game (stingiest defense).
@@ -657,7 +669,8 @@ def main():
         dbg("fanduel direct len:", len(_fd), "head:", _fd[:200].replace("\n", " "))
 
     date_label = today.strftime("%A, %B %-d")
-    lines = [f"NHL today — {date_label} ({len(games)} games)"]
+    lines = [f"NHL today — {date_label} ({len(games)} games)",
+             "Tracker: https://camdavis879-99.github.io/nhl-matchup-chart/"]
     chart_games = []
     for dt, g in games:
         away = g.get("awayTeam", {})
@@ -665,34 +678,22 @@ def main():
         a_abbr, h_abbr = away.get("abbrev", ""), home.get("abbrev", "")
         a_name = away.get("commonName", {}).get("default", a_abbr)
         h_name = home.get("commonName", {}).get("default", h_abbr)
+        a_place = (away.get("placeName") or {}).get("default", "")
+        h_place = (home.get("placeName") or {}).get("default", "")
+        a_full = f"{a_place} {a_name}".strip() if a_place else a_name
+        h_full = f"{h_place} {h_name}".strip() if h_place else h_name
         state = g.get("gameState", "FUT")
         state_txt = "" if state == "FUT" else (" (Final)" if state == "FINAL" else f" ({state})")
         lines.append("")
-        lines.append(f"{a_name} at {h_name} — {fmt_time(g.get('startTimeUTC', ''))}{state_txt}")
+        lines.append(f"{a_full} at {h_full} — {fmt_time(g.get('startTimeUTC', ''))}{state_txt}")
         a_avg = averages.get(a_abbr)
         h_avg = averages.get(h_abbr)
-        a_txt = (f"{a_avg[0]:.1f} GF/G ({gf_rank.get(a_abbr, '?')}), "
-                 f"{a_avg[1]:.1f} GA/G ({ga_rank.get(a_abbr, '?')})") if a_avg else "averages unavailable"
-        h_txt = (f"{h_avg[0]:.1f} GF/G ({gf_rank.get(h_abbr, '?')}), "
-                 f"{h_avg[1]:.1f} GA/G ({ga_rank.get(h_abbr, '?')})") if h_avg else "averages unavailable"
-        lines.append(f"{a_abbr} {a_txt} · {h_abbr} {h_txt}")
-        lines.append(f"Goalies: {goalie_line(a_abbr)} vs {goalie_line(h_abbr)}")
         a_odd, h_odd = odds.get(a_abbr), odds.get(h_abbr)
-        if a_odd and h_odd:
-            lines.append(f"FanDuel: {a_abbr} {a_odd['spread']} · "
-                         f"{h_abbr} {h_odd['spread']} · "
-                         f"O/U {a_odd['total']}")
         star_lines = []
         for abbr, side in ((a_abbr, a_abbr), (h_abbr, h_abbr)):
             for name, status, detail in injuries.get(abbr, []):
                 extra = f" ({detail})" if detail else ""
                 star_lines.append(f"{side}: {name} — {status}{extra}")
-        if star_lines:
-            lines.append("Stars out: " + "; ".join(star_lines))
-        elif not source_ok:
-            lines.append("Stars out: injury report unavailable")
-        # Otherwise omit the line: no star-injury news for this game, and
-        # per Cam's call we don't chase last-minute changes.
         chart_games.append({
             "away_abbr": a_abbr, "home_abbr": h_abbr,
             "away_name": a_name, "home_name": h_name,
@@ -718,11 +719,8 @@ def main():
                 "home_ml": h_odd.get("ml") if (a_odd.get("ml") and h_odd.get("ml")) else None,
             } if (a_odd and h_odd) else None,
         })
-    lines.append("")
-    lines.append("Goalie labels: confirmed/projected = DailyFaceoff's call; reported = listed without a flag; BACKUP = not the team's usual No. 1.")
-    lines.append("Ranks: GF 1st = most goals scored per game; GA 1st = fewest goals allowed per game.")
     with open(os.path.expanduser(os.environ.get("NHL_JSON_PATH", "~/workspace/nhl-daily/today.json")), "w") as f:
-        json.dump({"date": date_label, "games": chart_games}, f, indent=2)
+        json.dump({"date": date_label, "games": chart_games, "league": league}, f, indent=2)
     print("\n".join(lines))
     return 0
 

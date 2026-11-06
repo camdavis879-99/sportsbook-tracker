@@ -7,7 +7,10 @@ goalies with BACKUP flags and season save % + record, stars-out
 lines, FanDuel spreads and totals (lines only, no prices), last-10
 form, home/away scoring splits, and a SOG watch line per game (each
 team's top two shooters by shots on goal per game, plus the shots per
-game the opposing team allows). Below that, the current NFL
+game the opposing team allows). Below the game cards, a League totals
+table lists all 32 teams with average combined goals per game and goal
+differential, season to date, sortable by clicking the avg-total or +/-
+header (default: avg total, highest first). Below that, the current NFL
 week with records and odds, plus a short section on which bet types
 pay sportsbooks the most.
 

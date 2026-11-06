@@ -13,6 +13,9 @@ placed) with their morning prices and model probabilities. Picks for
 any other date are ignored, so a stale file can never render.
 The SOG watch block shows each team's top two shooters by shots on goal
 per game and the shots per game the opposing team allows.
+The League totals section lists all 32 teams with games played, average
+combined goals per game, and goal differential, season to date, sorted by
+avg total descending and sortable by clicking a column header.
 """
 import html
 import json
@@ -311,6 +314,71 @@ def picks_section():
     return "\n".join(parts)
 
 
+def league_section(data):
+    """Render the League totals table from today.json's league array.
+
+    One row per team, season to date: games played, average combined
+    goals per game (goals for + goals against, divided by games played),
+    and goal differential. Rows arrive sorted by avg total descending;
+    the avg-total and +/- headers are clickable to re-sort. Returns ""
+    when no league data is present, so an older today.json still renders.
+    """
+    league = data.get("league") or []
+    if not league:
+        return ""
+    rows = []
+    for t in league:
+        rows.append(
+            f'<tr><td>{html.escape(t["team"])}</td>'
+            f'<td data-v="{t["gp"]}">{t["gp"]}</td>'
+            f'<td data-v="{t["avg_total"]:.2f}">{t["avg_total"]:.2f}</td>'
+            f'<td data-v="{t["plusminus"]}">{t["plusminus"]:+d}</td></tr>'
+        )
+    return (
+        '<h2 class="section-title">League totals</h2>'
+        '<p class="section-note">Season to date, all 32 teams. Avg total is the average combined goals '
+        'per game in that team\'s games (goals for + goals against, divided by games played) — '
+        'the number that matters for totals. +/- is goals for minus goals against. '
+        'Click a column header to sort.</p>'
+        '<div class="league-wrap"><table class="league-table" id="league-table">'
+        '<thead><tr><th data-sort="text">Team</th><th data-sort="num">GP</th>'
+        '<th data-sort="num" class="sorted-desc">Avg total goals/game</th>'
+        '<th data-sort="num">+/-</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+    )
+
+
+LEAGUE_SORT_JS = """<script>
+(function () {
+  var tbl = document.getElementById("league-table");
+  if (!tbl) return;
+  var ths = tbl.querySelectorAll("th[data-sort]");
+  ths.forEach(function (th) {
+    th.addEventListener("click", function () {
+      var tbody = tbl.querySelector("tbody");
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+      var wasDesc = th.classList.contains("sorted-desc");
+      ths.forEach(function (h) { h.classList.remove("sorted-desc", "sorted-asc"); });
+      th.classList.add(wasDesc ? "sorted-asc" : "sorted-desc");
+      var col = th.cellIndex;
+      var numeric = th.getAttribute("data-sort") === "num";
+      rows.sort(function (a, b) {
+        var av = a.cells[col].getAttribute("data-v");
+        var bv = b.cells[col].getAttribute("data-v");
+        if (numeric) {
+          var an = parseFloat(av), bn = parseFloat(bv);
+          return wasDesc ? an - bn : bn - an;
+        }
+        var at = a.cells[col].textContent, bt = b.cells[col].textContent;
+        return wasDesc ? bt.localeCompare(at) : at.localeCompare(bt);
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+})();
+</script>"""
+
+
 BET_TYPES = """<h2 class="section-title">Which bets pay the book the most?</h2>
 <div class="bet-types">
 <p>Sportsbooks keep a cut of every dollar wagered, called the hold. On straight bets (one team, one total, one spread) the hold runs roughly 4 to 6 percent. On parlays it runs roughly 18 to 30 percent. Parlays are about a third of the money wagered but roughly 60 to 65 percent of sportsbook revenue.</p>
@@ -377,6 +445,14 @@ h1 {{ margin: 0 0 4px; font-size: 28px; }}
 .pick-label {{ font-weight: 600; }}
 .pick-reason {{ color: var(--muted); display: block; font-size: 13px; }}
 .pick-asof {{ color: var(--muted); font-size: 13px; margin-top: 10px; }}
+.league-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px 20px 16px; overflow-x: auto; }}
+.league-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+.league-table th, .league-table td {{ padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }}
+.league-table th:nth-child(2), .league-table th:nth-child(3), .league-table th:nth-child(4), .league-table td:nth-child(2), .league-table td:nth-child(3), .league-table td:nth-child(4) {{ text-align: right; }}
+.league-table th[data-sort] {{ cursor: pointer; white-space: nowrap; }}
+.league-table th.sorted-desc::after {{ content: " ▼"; font-size: 10px; }}
+.league-table th.sorted-asc::after {{ content: " ▲"; font-size: 10px; }}
+.league-table tr:last-child td {{ border-bottom: none; }}
 footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
 @media (max-width: 520px) {{
   .bar-label {{ width: 86px; font-size: 13px; }}
@@ -397,17 +473,20 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 <p>Last 10 is the regular-season record over the last 10 finals. Away and Home splits are season-to-date goals per game in that venue. Goalie SV% and record are season totals.</p>
 <p>Model: xGF/xGA are MoneyPuck all-situations expected goals per game; PP/PK are season-to-date; rest is days since the last game. Win % is a Poisson model on venue-split goals with ties split, and edge is the model minus the vig-free FanDuel moneyline probability. Goalie edge is the starter's save % minus the opposing starter's, shown for context and not folded into the model. "No line" means no FanDuel moneyline was available.</p>
 <p>SOG watch lists each team's top two shooters by shots on goal per game (minimum 5 games played) and the shots per game the opposing team allows.</p>
+<p>League totals lists every team's average combined goals per game and goal differential for the season, sortable by either column.</p>
 </div>
 {picks_section}
 <div class="grid">
 {cards}
 </div>
+{league_section}
 {nfl_section}
 {bet_types}
 <footer>
 <p>Snapshot of today's slate, rebuilt every morning with that day's games. Goalie labels: confirmed/projected is DailyFaceoff's call, reported means listed without a flag, BACKUP means not the team's usual No. 1. Ranks: GF 1st is the most goals scored per game, GA 1st is the fewest goals allowed per game.</p>
 </footer>
 </main>
+{league_script}
 </body>
 </html>
 """
@@ -431,6 +510,8 @@ def main():
         date=html.escape(data["date"]),
         cards=cards,
         picks_section=picks_section(),
+        league_section=league_section(data),
+        league_script=LEAGUE_SORT_JS if data.get("league") else "",
         nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
     )
