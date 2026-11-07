@@ -21,7 +21,7 @@ would be ambiguous.
 
 ## How it updates
 
-The `daily` workflow runs every day at 15:00 UTC (8:00 AM Phoenix
+The `daily` workflow runs every day at 12:00 UTC (5:00 AM Phoenix
 time, before the day's games). It runs `nhl_daily.py` to fetch that
 day's slate, `enrich.py` to add full team names, last-10 form,
 home/away splits, and goalie season stats, `nfl.py` to fetch the

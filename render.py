@@ -71,10 +71,9 @@ def card(g):
     parts.append('<div class="pair-label">Home offense vs away defense</div>')
     parts.append(bar(f"{h} offense", g["home_gf"], g["home_gf_rank"], OFFENSE))
     parts.append(bar(f"{a} defense", g["away_ga"], g["away_ga_rank"], DEFENSE))
-    parts.append(
-        f'<div class="goalies">Goalies: {goalie_stat(g["away_goalie"], g.get("away_goalie_stats"))} '
-        f'vs {goalie_stat(g["home_goalie"], g.get("home_goalie_stats"))}</div>'
-    )
+    note = g.get("goalie_note") or ""
+    if note:
+        parts.append(f'<div class="goalie-note">Note: {html.escape(note)}</div>')
     analytics = []
     if g.get("away_last10"):
         gp = g.get("away_last10_gp") or 10
@@ -104,10 +103,6 @@ def card(g):
     sb = sog_block(g)
     if sb:
         parts.append(sb)
-    stars = g.get("stars_out") or []
-    if stars:
-        items = "".join(f"<div>{html.escape(s)}</div>" for s in stars)
-        parts.append(f'<div class="stars"><div class="stars-title">Stars out</div>{items}</div>')
     parts.append("</section>")
     return "\n".join(parts)
 
@@ -419,7 +414,7 @@ h1 {{ margin: 0 0 4px; font-size: 28px; }}
 .bar-track {{ flex: 1; height: 14px; background: var(--bg); border-radius: 7px; overflow: hidden; }}
 .bar-fill {{ height: 100%; border-radius: 7px; }}
 .bar-value {{ width: 92px; flex-shrink: 0; text-align: right; font-size: 14px; font-weight: 600; }}
-.goalies {{ margin-top: 14px; font-size: 14px; }}
+.goalie-note {{ margin-top: 14px; font-size: 14px; font-weight: 600; }}
 .gstat {{ color: var(--muted); font-size: 13px; }}
 .analytics {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
 .section-title {{ margin: 32px 0 6px; font-size: 22px; }}
@@ -437,8 +432,6 @@ h1 {{ margin: 0 0 4px; font-size: 28px; }}
 .model-title {{ font-weight: 600; color: var(--muted); }}
 .sog {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
 .sog-title {{ font-weight: 600; color: var(--muted); }}
-.stars {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.5; }}
-.stars-title {{ font-weight: 600; color: var(--muted); }}
 .picks {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; line-height: 1.6; margin-bottom: 24px; }}
 .pick {{ margin: 10px 0; font-size: 14px; }}
 .pick-kind {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #dbeafe; color: #1e40af; margin-right: 6px; }}
@@ -468,9 +461,9 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 <h2>How to read it</h2>
 <p>Each card pairs offense against the opposing defense on a common 0 to 5 scale. Orange bars are goals scored per game, teal bars are goals allowed per game, with each team's league rank.</p>
 <p>GF rank 1st means the most goals scored per game. GA rank 1st means the fewest goals allowed per game.</p>
-<p>Goalie labels come from DailyFaceoff: confirmed or projected is their call, reported means listed without a flag, and BACKUP means the starter is not the team's usual No. 1.</p>
+<p>A note appears on a card only when a team's No. 1 goalie is confirmed out.</p>
 <p>The FanDuel row on each card shows the spread, the puck line, and O/U, the total goals line. Lines only, no prices.</p>
-<p>Last 10 is the regular-season record over the last 10 finals. Away and Home splits are season-to-date goals per game in that venue. Goalie SV% and record are season totals.</p>
+<p>Last 10 is the regular-season record over the last 10 finals. Away and Home splits are season-to-date goals per game in that venue.</p>
 <p>Model: xGF/xGA are MoneyPuck all-situations expected goals per game; PP/PK are season-to-date; rest is days since the last game. Win % is a Poisson model on venue-split goals with ties split, and edge is the model minus the vig-free FanDuel moneyline probability. Goalie edge is the starter's save % minus the opposing starter's, shown for context and not folded into the model. "No line" means no FanDuel moneyline was available.</p>
 <p>SOG watch lists each team's top two shooters by shots on goal per game (minimum 5 games played) and the shots per game the opposing team allows.</p>
 <p>League totals lists every team's average combined goals per game and goal differential for the season, sortable by either column.</p>
@@ -483,7 +476,7 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 {nfl_section}
 {bet_types}
 <footer>
-<p>Snapshot of today's slate, rebuilt every morning with that day's games. Goalie labels: confirmed/projected is DailyFaceoff's call, reported means listed without a flag, BACKUP means not the team's usual No. 1. Ranks: GF 1st is the most goals scored per game, GA 1st is the fewest goals allowed per game.</p>
+<p>Snapshot of today's slate, rebuilt every morning with that day's games. Ranks: GF 1st is the most goals scored per game, GA 1st is the fewest goals allowed per game.</p>
 </footer>
 </main>
 {league_script}

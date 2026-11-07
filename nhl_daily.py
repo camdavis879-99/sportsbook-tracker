@@ -471,6 +471,29 @@ def main():
             return f"unconfirmed (usual: {no1})"
         return "unconfirmed"
 
+    def goalie_injury_note(abbr):
+        """Return (no1, status) when a team's No. 1 goalie is confirmed
+        out, else None. Name-matched across all injury entries (not the
+        team key) because the injury table's team attribution is
+        unreliable. Only 'Out' counts as confirmed; 'Day to day' does
+        not. The backup starter's name is deliberately left out: the
+        DailyFaceoff starter feed misattributes goalies to the wrong
+        team (e.g. Ersson to Ottawa, Tarasov to Detroit), so naming a
+        backup would repeat that error.
+        """
+        no1 = club.get(abbr, {}).get("no1", "")
+        if not no1:
+            return None
+        for entries in injuries.values():
+            for name, status, detail in entries:
+                if same_player(name, no1):
+                    if "day to day" in status.lower():
+                        return None
+                    if "out" in status.lower():
+                        return (no1, status)
+                    return None
+        return None
+
     # FanDuel spreads + totals from Action Network's per-game articles.
     # FanDuel publishes no public API; the articles carry FanDuel tables.
     # Slugs vary ("...-odds-{date}" vs "...-odds-for-{date}"), so try both;
@@ -523,17 +546,27 @@ def main():
             _mk = {m.get("key"): m for m in (_fd.get("markets", []) or [])}
             _sp = _mk.get("spreads")
             _to = _mk.get("totals")
-            if not _sp or not _to:
+            # Totals alone are usable: the spread market can be absent for
+            # the whole slate (2026-11-07: API returned totals only), and
+            # total leans still work with the spread blank. A missing spread
+            # is stored as "" so the chart/bets layers keep string types;
+            # spread candidates safely no-op on it (normalize_price("") is None).
+            if not _to:
                 continue
-            _sp_out = {name_to_abbr_pre.get(_norm(o.get("name", ""))): o for o in (_sp.get("outcomes", []) or [])}
             _to_out = {o.get("name"): o for o in (_to.get("outcomes", []) or [])}
-            if _a not in _sp_out or _h not in _sp_out or "Over" not in _to_out or "Under" not in _to_out:
+            if "Over" not in _to_out or "Under" not in _to_out:
                 continue
             _tot = f"{float(_to_out['Over'].get('point')):g}"
-            for _abbr3, _o in ((_a, _sp_out[_a]), (_h, _sp_out[_h])):
+            _sp_out = {}
+            if _sp:
+                _sp_out = {name_to_abbr_pre.get(_norm(o.get("name", ""))): o for o in (_sp.get("outcomes", []) or [])}
+                if _a not in _sp_out or _h not in _sp_out:
+                    _sp_out = {}
+            for _abbr3 in (_a, _h):
+                _o = _sp_out.get(_abbr3)
                 odds[_abbr3] = {
-                    "spread": f"{float(_o.get('point')):+g}",
-                    "spread_price": _sgn(str(_o.get("price"))),
+                    "spread": f"{float(_o.get('point')):+g}" if _o else "",
+                    "spread_price": _sgn(str(_o.get("price"))) if _o else "",
                     "total": _tot,
                     "over": _sgn(str(_to_out["Over"].get("price"))),
                     "under": _sgn(str(_to_out["Under"].get("price"))),
@@ -694,6 +727,14 @@ def main():
             for name, status, detail in injuries.get(abbr, []):
                 extra = f" ({detail})" if detail else ""
                 star_lines.append(f"{side}: {name} — {status}{extra}")
+        notes = []
+        for abbr, full in ((a_abbr, a_full), (h_abbr, h_full)):
+            hit = goalie_injury_note(abbr)
+            if hit:
+                no1, status = hit
+                notes.append(f"{full} No. 1 goalie {no1} is out ({status}).")
+        for n in notes:
+            lines.append(f"  Note: {n}")
         chart_games.append({
             "away_abbr": a_abbr, "home_abbr": h_abbr,
             "away_name": a_name, "home_name": h_name,
@@ -709,6 +750,7 @@ def main():
             "away_goalie": goalie_line(a_abbr),
             "home_goalie": goalie_line(h_abbr),
             "stars_out": star_lines,
+            "goalie_note": "; ".join(notes),
             "odds": {
                 "away_spread": a_odd["spread"], "away_spread_price": a_odd["spread_price"],
                 "home_spread": h_odd["spread"], "home_spread_price": h_odd["spread_price"],
