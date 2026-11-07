@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Render today.json (from nhl_daily.py) into a self-contained index.html.
 
-Usage: python3 render.py [today.json] [dist/index.html] [nfl.json]
+Usage: python3 render.py [today.json] [dist/index.html] [nfl.json] [season_stats.json]
 Defaults: today.json in the current directory, dist/index.html, and
-nfl.json in the current directory when present (NFL section omitted
-when it is absent). NHL FanDuel odds show lines only, never prices.
+nfl.json / season_stats.json in the current directory when present
+(NFL section omitted when nfl.json is absent; Season Stats tab omitted
+when season_stats.json is absent). NHL FanDuel odds show lines only, never prices.
 The Model block shows vig-free implied probabilities and edges derived
 from moneylines, never the raw moneyline prices themselves.
 A Picks section appears only when a picks.json dated today is present:
@@ -16,6 +17,12 @@ per game and the shots per game the opposing team allows.
 The League totals section lists all 32 teams with games played, average
 combined goals per game, and goal differential, season to date, sorted by
 avg total descending and sortable by clicking a column header.
+A Season Stats tab (second page tab, Daily is the default) shows all 32
+teams across four switchable views — Overview, Offense, Defense & Goalies,
+Special Teams — with sortable columns, a team search box, percentile
+shading on the stat columns, a leaders strip, and a glossary. It reads
+season_stats.json (built by season_stats.py) when present; when the file
+is absent the tab is omitted and the page is the daily view only.
 """
 import html
 import json
@@ -26,8 +33,8 @@ from zoneinfo import ZoneInfo
 
 
 SCALE = 5.0
-OFFENSE = "#f97316"
-DEFENSE = "#0d9488"
+OFFENSE = "#2f5fd0"
+DEFENSE = "#64748b"
 
 
 def fmt(v):
@@ -335,7 +342,7 @@ def league_section(data):
         'per game in that team\'s games (goals for + goals against, divided by games played) — '
         'the number that matters for totals. +/- is goals for minus goals against. '
         'Click a column header to sort.</p>'
-        '<div class="league-wrap"><table class="league-table" id="league-table">'
+        '<div class="league-wrap"><table class="league-table sortable" id="league-table">'
         '<thead><tr><th data-sort="text">Team</th><th data-sort="num">GP</th>'
         '<th data-sort="num" class="sorted-desc">Avg total goals/game</th>'
         '<th data-sort="num">+/-</th></tr></thead>'
@@ -343,33 +350,331 @@ def league_section(data):
     )
 
 
-LEAGUE_SORT_JS = """<script>
+def _pct(v):
+    return f"{v:.1%}" if v is not None else "—"
+
+
+def _f2(v):
+    return f"{v:.2f}" if v is not None else "—"
+
+
+def _int(v):
+    return str(int(v)) if v is not None else "—"
+
+
+def _signed(v):
+    return f"{int(v):+d}" if v is not None else "—"
+
+
+def _txt(v):
+    return html.escape(str(v)) if v is not None else "—"
+
+
+def _sv(v):
+    return f".{round(v * 1000):03d}" if v is not None else "—"
+
+
+# Season Stats views. Each column: (key, label, kind, format fn,
+# lower-is-better, percentile-shaded). kind "num" sorts numerically on
+# the raw value in data-v; "text" sorts on the cell text.
+SEASON_VIEWS = [
+    ("overview", "Overview", "rank", False, [
+        ("rank", "Rk", "num", _int, False, False),
+        ("team", "Team", "text", _txt, False, False),
+        ("gp", "GP", "num", _int, False, False),
+        ("record", "Record", "text", _txt, False, False),
+        ("pts", "Pts", "num", _int, False, True),
+        ("pts_pct", "Pts%", "num", _pct, False, True),
+        ("gf_gp", "GF/GP", "num", _f2, False, True),
+        ("ga_gp", "GA/GP", "num", _f2, True, True),
+        ("diff", "+/-", "num", _signed, False, True),
+        ("streak", "Streak", "text", _txt, False, False),
+        ("l10_record", "L10", "text", _txt, False, False),
+        ("home_record", "Home", "text", _txt, False, False),
+        ("road_record", "Away", "text", _txt, False, False),
+    ]),
+    ("offense", "Offense", "gf_gp", True, [
+        ("team", "Team", "text", _txt, False, False),
+        ("gp", "GP", "num", _int, False, False),
+        ("gf_gp", "GF/GP", "num", _f2, False, True),
+        ("sf_gp", "SF/GP", "num", _f2, False, True),
+        ("sh_pct", "Sh%", "num", _pct, False, True),
+        ("xgf_gp", "xGF/GP", "num", _f2, False, True),
+        ("faceoff", "FO%", "num", _pct, False, True),
+    ]),
+    ("defense", "Defense & Goalies", "ga_gp", False, [
+        ("team", "Team", "text", _txt, False, False),
+        ("gp", "GP", "num", _int, False, False),
+        ("ga_gp", "GA/GP", "num", _f2, True, True),
+        ("sa_gp", "SA/GP", "num", _f2, True, True),
+        ("sv_pct", "Sv%", "num", _sv, False, True),
+        ("xga_gp", "xGA/GP", "num", _f2, True, True),
+        ("shutouts", "SO", "num", _int, False, True),
+    ]),
+    ("special", "Special Teams", "pp", True, [
+        ("team", "Team", "text", _txt, False, False),
+        ("gp", "GP", "num", _int, False, False),
+        ("pp", "PP%", "num", _pct, False, True),
+        ("pk", "PK%", "num", _pct, False, True),
+        ("pp_net", "PP net%", "num", _pct, False, True),
+        ("pk_net", "PK net%", "num", _pct, False, True),
+    ]),
+]
+
+
+def _tiers(teams, key, lower_better):
+    """Map abbr -> percentile tier class for one column.
+
+    Top fifth t5, next fifth t4, middle fifth unshaded, next fifth t2,
+    bottom fifth t1. lower_better inverts the direction (fewest goals
+    against is the good end). Needs >= 8 non-null values, else {}.
+    """
+    vals = [(t["abbr"], t.get(key)) for t in teams if t.get(key) is not None]
+    if len(vals) < 8:
+        return {}
+    vals.sort(key=lambda x: x[1])
+    n = len(vals)
+    out = {}
+    for i, (abbr, _v) in enumerate(vals):
+        frac = i / (n - 1) if n > 1 else 0.5
+        good = 1.0 - frac if lower_better else frac
+        if good >= 0.8:
+            out[abbr] = "t5"
+        elif good >= 0.6:
+            out[abbr] = "t4"
+        elif good <= 0.2:
+            out[abbr] = "t1"
+        elif good <= 0.4:
+            out[abbr] = "t2"
+    return out
+
+
+def _season_row(t):
+    """Flatten one team's nested splits into the keys the views use."""
+    r = dict(t)
+    r["l10_record"] = (t.get("l10") or {}).get("record")
+    r["home_record"] = (t.get("home") or {}).get("record")
+    r["road_record"] = (t.get("road") or {}).get("record")
+    return r
+
+
+def _season_table(view_id, label, default_key, default_desc, columns, teams):
+    """One switchable Season Stats table. Returns (html, is_default)."""
+    rows = [_season_row(t) for t in teams]
+    tiers = {}
+    for key, _lbl, _kind, _fn, lower, shade in columns:
+        if shade:
+            tiers[key] = _tiers(rows, key, lower)
+
+    def sort_val(t):
+        v = t.get(default_key)
+        if v is None:
+            return (1, 0)
+        if isinstance(v, (int, float)):
+            return (0, -v if default_desc else v)
+        return (0, v)
+
+    rows.sort(key=sort_val)
+    ths = []
+    for key, lbl, kind, _fn, _lower, _shade in columns:
+        classes = []
+        if kind == "num":
+            classes.append("num")
+        if key == default_key:
+            classes.append("sorted-desc" if default_desc else "sorted-asc")
+        cls = f' class="{" ".join(classes)}"' if classes else ""
+        ths.append(f'<th data-sort="{kind}"{cls}>{html.escape(lbl)}</th>')
+    trs = []
+    for t in rows:
+        cells = []
+        for key, _lbl, kind, fn, _lower, _shade in columns:
+            v = t.get(key)
+            disp = fn(v)
+            if kind == "num":
+                dv = f' data-v="{v}"' if isinstance(v, (int, float)) else ""
+                tier = tiers.get(key, {}).get(t["abbr"], "") if _shade else ""
+                cls = f' class="num {tier}"' if tier else ' class="num"'
+                cells.append(f"<td{dv}{cls}>{disp}</td>")
+            else:
+                cells.append(f"<td>{disp}</td>")
+        trs.append(
+            f'<tr data-team="{html.escape(t["team"].lower())}">{"".join(cells)}</tr>'
+        )
+    return (
+        f'<div class="season-view" data-view-panel="{view_id}"'
+        f'{" hidden" if view_id != "overview" else ""}>'
+        f'<div class="stats-wrap"><table class="stats-table sortable">'
+        f'<thead><tr>{"".join(ths)}</tr></thead>'
+        f'<tbody>{"".join(trs)}</tbody></table></div></div>'
+    )
+
+
+def _leader_chip(label, team, value_txt):
+    return (
+        f'<span class="leader-chip">{html.escape(label)}: '
+        f'<b>{html.escape(team)} {html.escape(value_txt)}</b></span>'
+    )
+
+
+def _best(teams, key, lower=False):
+    vals = [(t, t.get(key)) for t in teams if t.get(key) is not None]
+    if not vals:
+        return None
+    return (min if lower else max)(vals, key=lambda x: x[1])
+
+
+def season_section(season):
+    """Render the Season Stats tab content, or "" when no season data.
+
+    season is the season_stats.json dict: as_of, teams (32), leaders.
+    """
+    teams = (season or {}).get("teams") or []
+    if not teams:
+        return ""
+    as_of = season.get("as_of", "")
+
+    chips = []
+    for key, label, lower, fmt in (
+        ("pp", "PP", False, _pct),
+        ("pk", "PK", False, _pct),
+        ("gf_gp", "GF/GP", False, _f2),
+        ("ga_gp", "GA/GP", True, _f2),
+        ("diff", "+/-", False, _signed),
+        ("sv_pct", "Sv%", False, _sv),
+        ("sh_pct", "Sh%", False, _pct),
+        ("faceoff", "FO%", False, _pct),
+    ):
+        best = _best(teams, key, lower)
+        if best:
+            t, v = best
+            chips.append(_leader_chip(label, t["team"], fmt(v)))
+    team_leaders = (
+        '<div class="leaders"><span class="leaders-label">Team leaders</span>'
+        + "".join(chips)
+        + "</div>"
+    )
+    player_leaders = ""
+    ld = season.get("leaders") or {}
+    pchips = []
+    if ld.get("points"):
+        p = ld["points"]
+        pchips.append(_leader_chip("Points", f'{p["name"]} ({p["team"]})', str(p["value"])))
+    if ld.get("goals"):
+        p = ld["goals"]
+        pchips.append(_leader_chip("Goals", f'{p["name"]} ({p["team"]})', str(p["value"])))
+    if ld.get("sog"):
+        p = ld["sog"]
+        pchips.append(_leader_chip("SOG/GP", f'{p["name"]} ({p["team"]})', f'{p["value"]:.2f}'))
+    if ld.get("sv"):
+        p = ld["sv"]
+        pchips.append(_leader_chip("Sv%", f'{p["name"]} ({p["team"]})', _sv(p["value"])))
+    if ld.get("gaa"):
+        p = ld["gaa"]
+        pchips.append(_leader_chip("GAA", f'{p["name"]} ({p["team"]})', f'{p["value"]:.2f}'))
+    if pchips:
+        player_leaders = (
+            '<div class="leaders"><span class="leaders-label">Player leaders</span>'
+            + "".join(pchips)
+            + "</div>"
+        )
+
+    view_btns = "".join(
+        f'<button class="view-btn{" active" if vid == "overview" else ""}" data-view="{vid}">'
+        f"{html.escape(label)}</button>"
+        for vid, label, _dk, _dd, _cols in SEASON_VIEWS
+    )
+    tables = "".join(
+        _season_table(vid, label, dk, dd, cols, teams)
+        for vid, label, dk, dd, cols in SEASON_VIEWS
+    )
+    return (
+        '<h2 class="section-title">Season stats</h2>'
+        f'<p class="section-note">Season to date through {html.escape(str(as_of))} &middot; '
+        "all 32 teams &middot; NHL stats API + MoneyPuck. Click a column header to sort. "
+        "Shading marks the top and bottom fifths of the league in that stat.</p>"
+        f"{team_leaders}{player_leaders}"
+        '<input id="season-search" class="season-search" type="search" '
+        'placeholder="Search teams…" autocomplete="off">'
+        f'<div class="view-tabs">{view_btns}</div>'
+        f"{tables}"
+        '<p class="glossary">GF/GP goals for per game &middot; GA/GP goals against per game &middot; '
+        "Sh% team shooting percentage, goals divided by shots (computed) &middot; Sv% team save "
+        "percentage, computed from shots against &middot; xGF/xGA MoneyPuck expected goals per game "
+        "&middot; Pts% points percentage &middot; L10 record over the last 10 games &middot; PP/PK "
+        "season power-play / penalty-kill percentage &middot; FO% faceoff win percentage &middot; "
+        "net PP/PK subtract shorthanded goals for/against. Percentile shading: the darkest green "
+        "cells are the top fifth of the league in that stat, the darkest red the bottom fifth. "
+        "Early-season numbers are noisy; ranks settle as games accumulate.</p>"
+    )
+
+
+PAGE_JS = """<script>
 (function () {
-  var tbl = document.getElementById("league-table");
-  if (!tbl) return;
-  var ths = tbl.querySelectorAll("th[data-sort]");
-  ths.forEach(function (th) {
-    th.addEventListener("click", function () {
-      var tbody = tbl.querySelector("tbody");
-      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
-      var wasDesc = th.classList.contains("sorted-desc");
-      ths.forEach(function (h) { h.classList.remove("sorted-desc", "sorted-asc"); });
-      th.classList.add(wasDesc ? "sorted-asc" : "sorted-desc");
-      var col = th.cellIndex;
-      var numeric = th.getAttribute("data-sort") === "num";
-      rows.sort(function (a, b) {
-        var av = a.cells[col].getAttribute("data-v");
-        var bv = b.cells[col].getAttribute("data-v");
-        if (numeric) {
-          var an = parseFloat(av), bn = parseFloat(bv);
-          return wasDesc ? an - bn : bn - an;
-        }
-        var at = a.cells[col].textContent, bt = b.cells[col].textContent;
-        return wasDesc ? bt.localeCompare(at) : at.localeCompare(bt);
+  // Generic sortable tables: any table.sortable with th[data-sort].
+  // Missing values (no data-v) always sink to the bottom.
+  document.querySelectorAll("table.sortable").forEach(function (tbl) {
+    var ths = tbl.querySelectorAll("th[data-sort]");
+    ths.forEach(function (th) {
+      th.addEventListener("click", function () {
+        var tbody = tbl.querySelector("tbody");
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+        var wasDesc = th.classList.contains("sorted-desc");
+        ths.forEach(function (h) { h.classList.remove("sorted-desc", "sorted-asc"); });
+        th.classList.add(wasDesc ? "sorted-asc" : "sorted-desc");
+        var col = th.cellIndex;
+        var numeric = th.getAttribute("data-sort") === "num";
+        rows.sort(function (a, b) {
+          if (numeric) {
+            var av = parseFloat(a.cells[col].getAttribute("data-v"));
+            var bv = parseFloat(b.cells[col].getAttribute("data-v"));
+            if (isNaN(av) && isNaN(bv)) return 0;
+            if (isNaN(av)) return 1;
+            if (isNaN(bv)) return -1;
+            return wasDesc ? av - bv : bv - av;
+          }
+          var at = a.cells[col].textContent, bt = b.cells[col].textContent;
+          return wasDesc ? bt.localeCompare(at) : at.localeCompare(bt);
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
       });
-      rows.forEach(function (r) { tbody.appendChild(r); });
     });
   });
+
+  // Page tabs: Daily | Season Stats.
+  var tabBtns = document.querySelectorAll("[data-tab]");
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabBtns.forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("tab-daily").hidden = btn.getAttribute("data-tab") !== "daily";
+      var season = document.getElementById("tab-season");
+      if (season) season.hidden = btn.getAttribute("data-tab") !== "season";
+    });
+  });
+
+  // Season Stats view tabs.
+  var viewBtns = document.querySelectorAll("[data-view]");
+  viewBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-view");
+      viewBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
+      document.querySelectorAll(".season-view").forEach(function (el) {
+        el.hidden = el.getAttribute("data-view-panel") !== v;
+      });
+    });
+  });
+
+  // Team search: filters every Season Stats table by team name.
+  var search = document.getElementById("season-search");
+  if (search) {
+    search.addEventListener("input", function () {
+      var q = search.value.trim().toLowerCase();
+      document.querySelectorAll("#tab-season tbody tr").forEach(function (tr) {
+        var name = tr.getAttribute("data-team") || "";
+        tr.style.display = (!q || name.indexOf(q) !== -1) ? "" : "none";
+      });
+    });
+  }
 })();
 </script>"""
 
@@ -390,66 +695,95 @@ PAGE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NHL + NFL Matchup Chart — {date}</title>
 <style>
-:root {{ --bg: #f4f4f5; --card: #ffffff; --text: #18181b; --muted: #71717a; --border: #e4e4e7; }}
+:root {{ --bg: #fafafa; --card: #ffffff; --text: #171717; --muted: #737373; --border: #e5e5e5; --accent: #2f5fd0; --defense: #64748b; --chip: #f0f0f0; --chip-text: #404040; }}
 @media (prefers-color-scheme: dark) {{
-  :root {{ --bg: #09090b; --card: #18181b; --text: #fafafa; --muted: #a1a1aa; --border: #27272a; }}
+  :root {{ --bg: #0a0a0a; --card: #171717; --text: #f5f5f5; --muted: #a3a3a3; --border: #262626; --accent: #7aa2ff; --defense: #8b98a9; --chip: #262626; --chip-text: #e5e5e5; }}
 }}
 * {{ box-sizing: border-box; }}
 body {{ margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
-main {{ max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }}
-h1 {{ margin: 0 0 4px; font-size: 28px; }}
-.subtitle {{ color: var(--muted); margin: 0 0 20px; }}
-.guide {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; line-height: 1.5; }}
-.guide h2 {{ margin: 0 0 8px; font-size: 16px; }}
-.guide p {{ margin: 4px 0; color: var(--muted); }}
-.grid {{ display: grid; grid-template-columns: 1fr; gap: 16px; }}
+main {{ max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }}
+h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
+.subtitle {{ color: var(--muted); margin: 0 0 16px; font-size: 14px; }}
+.tabs {{ display: flex; gap: 8px; margin: 0 0 20px; }}
+.tab-btn {{ padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }}
+.tab-btn.active {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
+.guide {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; line-height: 1.5; }}
+.guide h2 {{ margin: 0 0 6px; font-size: 15px; }}
+.guide p {{ margin: 4px 0; color: var(--muted); font-size: 14px; }}
+.grid {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
 @media (min-width: 900px) {{ .grid {{ grid-template-columns: 1fr 1fr; }} }}
-.card {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }}
-.matchup {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }}
-.matchup h2 {{ margin: 0; font-size: 19px; }}
-.time {{ color: var(--muted); font-size: 14px; white-space: nowrap; }}
-.pair-label {{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 12px 0 6px; }}
-.bar-row {{ display: flex; align-items: center; gap: 10px; margin: 6px 0; }}
-.bar-label {{ width: 110px; flex-shrink: 0; font-size: 14px; }}
-.bar-track {{ flex: 1; height: 14px; background: var(--bg); border-radius: 7px; overflow: hidden; }}
-.bar-fill {{ height: 100%; border-radius: 7px; }}
-.bar-value {{ width: 92px; flex-shrink: 0; text-align: right; font-size: 14px; font-weight: 600; }}
-.goalie-note {{ margin-top: 14px; font-size: 14px; font-weight: 600; }}
-.gstat {{ color: var(--muted); font-size: 13px; }}
-.analytics {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
-.section-title {{ margin: 32px 0 6px; font-size: 22px; }}
-.section-note {{ color: var(--muted); margin: 0 0 16px; line-height: 1.5; }}
-.nfl-records {{ font-size: 14px; color: var(--muted); margin: 6px 0; }}
-.nfl-score {{ margin-top: 10px; font-size: 14px; font-weight: 600; }}
-.odds-note {{ margin-top: 10px; font-size: 13px; color: var(--muted); }}
-.nfl-bye {{ color: var(--muted); margin: 0 0 16px; }}
-.bet-types {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; line-height: 1.6; }}
-.bet-types p {{ margin: 8px 0; color: var(--muted); }}
+.card {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }}
+.matchup {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }}
+.matchup h2 {{ margin: 0; font-size: 17px; letter-spacing: -0.01em; }}
+.time {{ color: var(--muted); font-size: 13px; white-space: nowrap; }}
+.pair-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 10px 0 4px; }}
+.bar-row {{ display: flex; align-items: center; gap: 10px; margin: 5px 0; }}
+.bar-label {{ width: 96px; flex-shrink: 0; font-size: 13px; }}
+.bar-track {{ flex: 1; height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }}
+.bar-fill {{ height: 100%; border-radius: 5px; }}
+.bar-value {{ width: 84px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 600; }}
+.goalie-note {{ margin-top: 12px; font-size: 13px; font-weight: 600; }}
+.gstat {{ color: var(--muted); font-size: 12px; }}
+.analytics {{ margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
+.section-title {{ margin: 24px 0 6px; font-size: 19px; letter-spacing: -0.01em; }}
+.section-note {{ color: var(--muted); margin: 0 0 14px; line-height: 1.5; font-size: 14px; }}
+.nfl-records {{ font-size: 13px; color: var(--muted); margin: 6px 0; }}
+.nfl-score {{ margin-top: 8px; font-size: 13px; font-weight: 600; }}
+.odds-note {{ margin-top: 8px; font-size: 13px; color: var(--muted); }}
+.nfl-bye {{ color: var(--muted); margin: 0 0 14px; font-size: 14px; }}
+.bet-types {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; line-height: 1.6; }}
+.bet-types p {{ margin: 6px 0; color: var(--muted); font-size: 14px; }}
 .bet-types p.honest {{ color: var(--text); }}
-.backup {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; margin-left: 4px; }}
-.odds {{ margin-top: 10px; display: inline-block; font-size: 14px; font-weight: 600; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); }}
-.model {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
+.backup {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--chip); color: var(--chip-text); margin-left: 4px; }}
+.odds {{ margin-top: 8px; display: inline-block; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); }}
+.model {{ margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
 .model-title {{ font-weight: 600; color: var(--muted); }}
-.sog {{ margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
+.sog {{ margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
 .sog-title {{ font-weight: 600; color: var(--muted); }}
-.picks {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; line-height: 1.6; margin-bottom: 24px; }}
-.pick {{ margin: 10px 0; font-size: 14px; }}
-.pick-kind {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #dbeafe; color: #1e40af; margin-right: 6px; }}
+.picks {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; line-height: 1.6; margin-bottom: 20px; }}
+.pick {{ margin: 8px 0; font-size: 14px; }}
+.pick-kind {{ display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--chip); color: var(--chip-text); margin-right: 6px; }}
 .pick-label {{ font-weight: 600; }}
 .pick-reason {{ color: var(--muted); display: block; font-size: 13px; }}
-.pick-asof {{ color: var(--muted); font-size: 13px; margin-top: 10px; }}
-.league-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px 20px 16px; overflow-x: auto; }}
+.pick-asof {{ color: var(--muted); font-size: 13px; margin-top: 8px; }}
+.league-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px 16px 12px; overflow-x: auto; }}
 .league-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
-.league-table th, .league-table td {{ padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }}
+.league-table th, .league-table td {{ padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }}
 .league-table th:nth-child(2), .league-table th:nth-child(3), .league-table th:nth-child(4), .league-table td:nth-child(2), .league-table td:nth-child(3), .league-table td:nth-child(4) {{ text-align: right; }}
 .league-table th[data-sort] {{ cursor: pointer; white-space: nowrap; }}
 .league-table th.sorted-desc::after {{ content: " ▼"; font-size: 10px; }}
 .league-table th.sorted-asc::after {{ content: " ▲"; font-size: 10px; }}
 .league-table tr:last-child td {{ border-bottom: none; }}
-footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
+.view-tabs {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }}
+.view-btn {{ padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }}
+.view-btn.active {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
+.season-search {{ width: 100%; max-width: 320px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 14px; margin-bottom: 12px; }}
+.leaders {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; align-items: center; }}
+.leaders-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-right: 4px; }}
+.leader-chip {{ background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 13px; }}
+.stats-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px 16px 12px; overflow-x: auto; }}
+.stats-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+.stats-table th, .stats-table td {{ padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }}
+.stats-table th.num, .stats-table td.num {{ text-align: right; }}
+.stats-table th[data-sort] {{ cursor: pointer; }}
+.stats-table th.sorted-desc::after {{ content: " ▼"; font-size: 10px; }}
+.stats-table th.sorted-asc::after {{ content: " ▲"; font-size: 10px; }}
+.stats-table tr:last-child td {{ border-bottom: none; }}
+.stats-table td.t5 {{ background: rgba(22, 163, 74, 0.16); }}
+.stats-table td.t4 {{ background: rgba(22, 163, 74, 0.08); }}
+.stats-table td.t2 {{ background: rgba(220, 38, 38, 0.07); }}
+.stats-table td.t1 {{ background: rgba(220, 38, 38, 0.14); }}
+@media (prefers-color-scheme: dark) {{
+  .stats-table td.t5 {{ background: rgba(74, 222, 128, 0.18); }}
+  .stats-table td.t4 {{ background: rgba(74, 222, 128, 0.09); }}
+  .stats-table td.t2 {{ background: rgba(248, 113, 113, 0.08); }}
+  .stats-table td.t1 {{ background: rgba(248, 113, 113, 0.16); }}
+}}
+.glossary {{ color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 16px; }}
+footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
 @media (max-width: 520px) {{
-  .bar-label {{ width: 86px; font-size: 13px; }}
-  .bar-value {{ width: 78px; font-size: 13px; }}
+  .bar-label {{ width: 84px; font-size: 12px; }}
+  .bar-value {{ width: 76px; font-size: 12px; }}
 }}
 </style>
 </head>
@@ -457,9 +791,11 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 <main>
 <h1>NHL + NFL Matchup Chart</h1>
 <p class="subtitle">{date} &middot; NHL today, NFL this week &middot; rebuilt every morning</p>
+{tabs}
+<div id="tab-daily">
 <div class="guide">
 <h2>How to read it</h2>
-<p>Each card pairs offense against the opposing defense on a common 0 to 5 scale. Orange bars are goals scored per game, teal bars are goals allowed per game, with each team's league rank.</p>
+<p>Each card pairs offense against the opposing defense on a common 0 to 5 scale. Blue bars are goals scored per game, slate bars are goals allowed per game, with each team's league rank.</p>
 <p>GF rank 1st means the most goals scored per game. GA rank 1st means the fewest goals allowed per game.</p>
 <p>A note appears on a card only when a team's No. 1 goalie is confirmed out.</p>
 <p>The FanDuel row on each card shows the spread, the puck line, and O/U, the total goals line. Lines only, no prices.</p>
@@ -475,20 +811,33 @@ footer {{ margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1
 {league_section}
 {nfl_section}
 {bet_types}
+</div>
+{season_container}
 <footer>
 <p>Snapshot of today's slate, rebuilt every morning with that day's games. Ranks: GF 1st is the most goals scored per game, GA 1st is the fewest goals allowed per game.</p>
 </footer>
 </main>
-{league_script}
+{page_script}
 </body>
 </html>
 """
+
+
+def tabs_nav(has_season):
+    """Daily | Season Stats buttons, or "" when no season data exists."""
+    if not has_season:
+        return ""
+    return (
+        '<div class="tabs"><button class="tab-btn active" data-tab="daily">Daily</button>'
+        '<button class="tab-btn" data-tab="season">Season Stats</button></div>'
+    )
 
 
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else "today.json"
     dst = sys.argv[2] if len(sys.argv) > 2 else "dist/index.html"
     nfl_src = sys.argv[3] if len(sys.argv) > 3 else "nfl.json"
+    season_src = sys.argv[4] if len(sys.argv) > 4 else "season_stats.json"
     with open(src) as f:
         data = json.load(f)
     cards = "\n".join(card(g) for g in data["games"])
@@ -499,20 +848,36 @@ def main():
                 nfl = json.load(f)
         except Exception:
             nfl = None
+    season = None
+    if os.path.exists(season_src):
+        try:
+            with open(season_src) as f:
+                season = json.load(f)
+        except Exception:
+            season = None
+    if not (season or {}).get("teams"):
+        season = None
+    season_html = season_section(season)
+    season_container = (
+        f'<div id="tab-season" hidden>\n{season_html}\n</div>' if season_html else ""
+    )
     out = PAGE.format(
         date=html.escape(data["date"]),
         cards=cards,
         picks_section=picks_section(),
         league_section=league_section(data),
-        league_script=LEAGUE_SORT_JS if data.get("league") else "",
+        page_script=PAGE_JS,
         nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
+        tabs=tabs_nav(bool(season)),
+        season_container=season_container,
     )
     os.makedirs(os.path.dirname(dst) or ".", exist_ok=True)
     with open(dst, "w") as f:
         f.write(out)
     print(f"Wrote {dst} with {len(data['games'])} NHL games"
-          f" and {len(nfl['games']) if nfl else 0} NFL games.")
+          f" and {len(nfl['games']) if nfl else 0} NFL games"
+          f" (season stats: {len(season['teams']) if season else 0} teams).")
 
 
 if __name__ == "__main__":

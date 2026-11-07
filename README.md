@@ -7,7 +7,10 @@ goalies with BACKUP flags and season save % + record, stars-out
 lines, FanDuel spreads and totals (lines only, no prices), last-10
 form, home/away scoring splits, and a SOG watch line per game (each
 team's top two shooters by shots on goal per game, plus the shots per
-game the opposing team allows). Below the game cards, a League totals
+game the opposing team allows). A Season Stats tab lists all 32 teams
+across four switchable views (Overview, Offense, Defense & Goalies,
+Special Teams) with sortable columns, team search, percentile
+shading, and team/player leader strips. Below the game cards, a League totals
 table lists all 32 teams with average combined goals per game and goal
 differential, season to date, sortable by clicking the avg-total or +/-
 header (default: avg total, highest first). Below that, the current NFL
@@ -25,12 +28,15 @@ The `daily` workflow runs every day at 12:00 UTC (5:00 AM Phoenix
 time, before the day's games). It runs `nhl_daily.py` to fetch that
 day's slate, `enrich.py` to add full team names, last-10 form,
 home/away splits, and goalie season stats, `nfl.py` to fetch the
-current NFL week from ESPN, then renders `index.html` with
+current NFL week, `season_stats.py` to fetch season-to-date stats for
+all 32 teams (Season Stats tab), then renders `index.html` with
 `render.py`, and deploys it to GitHub Pages. The published link
 then shows the new slate with no manual step. Scheduled GitHub runs
 can lag a little, and the workflow can also be run by hand from the
-Actions tab. The enrich and NFL steps never fail the build: if a
-fetch fails, the page renders with whatever data is available.
+Actions tab. The enrich, NFL, and season-stats steps never fail the
+build: if a fetch fails, the page renders with whatever data is
+available (the Season Stats tab is omitted when season_stats.json
+has no teams).
 
 ## Files
 
@@ -51,8 +57,14 @@ fetch fails, the page renders with whatever data is available.
   NOT FanDuel, and the page labels them as such. If ESPN posts no
   odds for a game, the page says so instead of guessing. No NCAA
   content.
-- `render.py`: turns `today.json` (plus `nfl.json` when present)
-  into a self-contained `index.html`.
+- `render.py`: turns `today.json` (plus `nfl.json` when present and
+  `season_stats.json` when present) into a self-contained `index.html`.
+  The Season Stats tab is omitted when season_stats.json is absent
+  or has no teams.
+- `season_stats.py`: fetches season-to-date stats for all 32 teams
+  (standings, team summary, MoneyPuck expected goals, club-stats
+  leaders) and writes `season_stats.json`. Stdlib only. Never fails
+  the build: missing fields are null, never guessed.
 - `.github/workflows/daily.yml`: the schedule, build, and deploy.
 
 ## One-time setup
