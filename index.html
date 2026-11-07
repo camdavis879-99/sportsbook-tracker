@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Sportsbook Tracker" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+<link rel="icon" href="data:," />
+<title>CBB Tracker — Top 125 · Sportsbook Tracker</title>
+<style>
+  :root{
+    --bg:#fafafa; --card:#ffffff; --text:#171717; --muted:#737373; --border:#e5e5e5;
+    --accent:#2f5fd0; --defense:#64748b; --chip:#f0f0f0; --chip-text:#404040;
+    --good:#16a34a; --bad:#dc2626;
+    --t5:rgba(22,163,74,.16); --t4:rgba(22,163,74,.08);
+    --t2:rgba(220,38,38,.07); --t1:rgba(220,38,38,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0a0a0a; --card:#171717; --text:#f5f5f5; --muted:#a3a3a3; --border:#262626;
+      --accent:#7aa2ff; --defense:#8b98a9; --chip:#262626; --chip-text:#e5e5e5;
+      --good:#4ade80; --bad:#f87171;
+      --t5:rgba(74,222,128,.18); --t4:rgba(74,222,128,.09);
+      --t2:rgba(248,113,113,.08); --t1:rgba(248,113,113,.16);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:15px;line-height:1.45}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+  h1,h2,h3{margin:0;line-height:1.1;letter-spacing:-0.01em}
+  /* hub top nav */
+  .topnav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{font-size:17px;font-weight:700;letter-spacing:-0.01em;color:var(--text);text-decoration:none}
+  .brand span{color:var(--accent)}
+  .nav-links{display:flex;gap:6px}
+  .nav-link{padding:6px 14px;border-radius:999px;border:1px solid var(--border);
+    background:var(--card);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none}
+  .nav-link.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+  /* header */
+  .masthead{margin-bottom:14px}
+  .masthead h1{font-size:24px;font-weight:700}
+  .dateline{color:var(--muted);font-size:14px;margin:4px 0 0}
+  .dateline strong{color:var(--text)}
+  .caveat{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;font-size:14px;color:var(--muted);line-height:1.5;margin:0 0 20px}
+  .caveat strong{color:var(--text)}
+  /* leaders */
+  .leaders{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center}
+  .leaders-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-right:4px}
+  .leader-chip{background:var(--card);border:1px solid var(--border);border-radius:999px;
+    padding:4px 10px;font-size:13px}
+  /* section heads */
+  .section-title{margin:24px 0 6px;font-size:19px;font-weight:700}
+  .section-note{color:var(--muted);margin:0 0 14px;line-height:1.5;font-size:14px}
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .seg{display:inline-flex;gap:6px}
+  .seg button{appearance:none;border:1px solid var(--border);background:var(--card);color:var(--muted);
+    font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .seg button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  select{font:inherit;font-size:14px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);padding:8px 10px;border-radius:8px}
+  input[type="search"]{font:inherit;font-size:14px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);padding:8px 12px;border-radius:8px;
+    min-width:170px;flex:1 1 170px;max-width:320px}
+  .sheet-link{margin-left:auto;font-weight:600;font-size:13.5px;color:var(--accent);
+    text-decoration:none;border:1px solid var(--border);padding:8px 12px;border-radius:999px;background:var(--card)}
+  .sheet-link:hover{text-decoration:underline}
+  /* table */
+  .table-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:6px 16px 12px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  thead th{font-size:13px;font-weight:600;color:var(--muted);
+    text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+    cursor:pointer;user-select:none}
+  thead th.l,td.l{text-align:left}
+  thead th .dir{color:var(--accent);font-size:10px}
+  tbody td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-size:14px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:var(--bg)}
+  td.team{font-weight:700;font-size:15px}
+  td .sub{color:var(--muted);font-size:11px;font-weight:500;margin-left:3px}
+  td.rk{color:var(--muted);font-weight:600}
+  td.t5{background:var(--t5)} td.t4{background:var(--t4)}
+  td.t2{background:var(--t2)} td.t1{background:var(--t1)}
+  .pos{color:var(--good);font-weight:600}.neg{color:var(--bad);font-weight:600}
+  .count-line{color:var(--muted);font-size:13px;margin-top:8px}
+  /* projector */
+  .proj{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .proj-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end}
+  .proj label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .proj select{width:100%}
+  .vs{font-weight:700;font-size:20px;color:var(--muted);padding-bottom:8px}
+  .loc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+  .loc-row .lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .proj-out{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;display:none}
+  .proj-out.show{display:block}
+  .score-line{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:baseline}
+  .score-team{font-size:clamp(22px,4vw,32px);font-weight:700;letter-spacing:-0.01em}
+  .score-team .pts{color:var(--accent)}
+  .score-team.win .pts{color:var(--good)}
+  .proj-meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:8px;color:var(--muted);font-size:14px}
+  .proj-meta strong{color:var(--text)}
+  .wp-bar{display:flex;height:10px;margin-top:12px;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+  .wp-bar .a{background:var(--accent)} .wp-bar .b{background:var(--muted)}
+  .wp-lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:4px}
+  /* four factors breakdown */
+  .ff{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+  .ff-head{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .ff-row{display:flex;flex-wrap:wrap;gap:1px 12px;align-items:baseline;
+    padding:6px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .ff-row .ff-k{font-weight:700;min-width:128px}
+  .ff-row .ff-v{font-weight:600;white-space:nowrap}
+  .ff-row .ff-ctx{color:var(--muted);font-size:12.5px}
+  .ff-note{margin:9px 0 0;font-size:13px;color:var(--muted)}
+  .ff-note strong{color:var(--text)}
+  /* projector + calculator side by side */
+  .tools{display:grid;grid-template-columns:1fr;gap:0 22px;align-items:start}
+  @media (min-width:920px){ .tools{grid-template-columns:7fr 5fr} }
+  /* kelly calculator */
+  .calc .calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .calc label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .calc input[type="number"]{font:inherit;font-size:15px;color:var(--text);width:100%;
+    background:var(--card);border:1px solid var(--border);padding:8px 10px;border-radius:8px;
+    font-variant-numeric:tabular-nums}
+  .calc input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .calc-out{margin-top:16px;border-top:1px solid var(--border);padding-top:12px}
+  .ev-line{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline;font-size:14px;color:var(--muted)}
+  .ev-line .ev-big{font-size:30px;font-weight:700;line-height:1;color:var(--text)}
+  .k-rows{margin-top:12px;border-top:1px solid var(--border)}
+  .k-row{display:grid;grid-template-columns:1fr auto auto;gap:6px 18px;align-items:baseline;
+    padding:8px 0;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
+  .k-row .k-name{font-weight:600;font-size:14.5px}
+  .k-row .k-name span{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+  .k-row .k-pct{font-size:14.5px;color:var(--muted);text-align:right;min-width:86px}
+  .k-row .k-amt{font-size:22px;font-weight:700;min-width:76px;text-align:right}
+  .k-head{display:grid;grid-template-columns:1fr auto auto;gap:6px 18px;padding:0 0 4px;
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .k-head span:nth-child(2){min-width:86px;text-align:right}
+  .k-head span:nth-child(3){min-width:76px;text-align:right}
+  .calc-msg{margin-top:12px;font-size:14px;color:var(--muted)}
+  .calc-note{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;font-size:14px;color:var(--muted);line-height:1.5}
+  .calc-note strong{color:var(--text)}
+  @media (max-width:560px){ .calc .calc-grid{grid-template-columns:1fr 1fr} }
+  /* glossary */
+  .gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 22px}
+  .gloss div{font-size:13.5px;color:var(--muted);line-height:1.5}
+  .gloss b{color:var(--text)}
+  footer{margin-top:24px;border-top:1px solid var(--border);padding-top:12px;
+    color:var(--muted);font-size:13px;line-height:1.5}
+  footer a{color:var(--accent)}
+  @media (max-width:760px){
+    .hide-m{display:none}
+    thead th,tbody td{padding:7px 6px;font-size:13.5px}
+    td.team{font-size:14px}
+    .proj-grid{grid-template-columns:1fr}
+    .vs{display:none}
+    .sheet-link{margin-left:0}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <nav class="topnav" aria-label="Sports">
+    <a class="brand" href="../index.html">Sportsbook <span>Tracker</span></a>
+    <div class="nav-links">
+      <a class="nav-link" href="../index.html">NHL</a>
+      <a class="nav-link active" href="index.html" aria-current="page">CBB</a>
+    </div>
+  </nav>
+
+  <header class="masthead">
+    <h1>CBB Tracker</h1>
+    <p class="dateline">Top 125 teams &middot; 2026&ndash;27 season &middot; Ratings pulled
+      <strong>Nov 7, 2026</strong> from <strong>Barttorvik T-Rank</strong></p>
+  </header>
+  <p class="caveat"><strong>Early-season read:</strong> every team here has played 1&ndash;2 games,
+    so these ratings still lean heavily on preseason priors. Treat the order as a starting
+    picture, not a verdict &mdash; the numbers sharpen fast through November and December.</p>
+
+  <section class="leaders" id="leaders" aria-label="Category leaders"></section>
+
+  <h2 class="section-title">Top 125 Ratings</h2>
+  <p class="section-note">Click any column to sort. Cell shading is graded within the top 125 for that stat.</p>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Stat view">
+      <button type="button" data-view="eff" aria-pressed="true">Efficiency</button>
+      <button type="button" data-view="ff" aria-pressed="false">Four Factors</button>
+      <button type="button" data-view="shot" aria-pressed="false">Shooting</button>
+    </div>
+    <select id="confFilter" aria-label="Filter by conference">
+      <option value="">All conferences</option>
+    </select>
+    <input type="search" id="teamSearch" placeholder="Search team&hellip;" aria-label="Search team" />
+    <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1RhpEI5HVC3c2ZgSTCzkEs4Mr_CZACNMnJNJEwM1lguY/edit" target="_blank" rel="noopener">Open the Google Sheet &rarr;</a>
+  </div>
+
+  <div class="table-card">
+    <table id="ratings" aria-label="Top 125 team ratings">
+      <thead id="ratingsHead"></thead>
+      <tbody id="ratingsBody"></tbody>
+    </table>
+  </div>
+  <p class="count-line" id="countLine"></p>
+
+  <div class="tools">
+  <div>
+  <h2 class="section-title">Matchup Projector</h2>
+  <p class="section-note">Projects any pairing from the ratings above: expected possessions from both tempos,
+    points from each offense against the other defense, then a Four Factors matchup
+    adjustment (turnovers, offensive rebounding, free-throw rate) on each side.</p>
+  <section class="proj" aria-label="Matchup projector">
+    <div class="proj-grid">
+      <div>
+        <label for="teamA">Team A</label>
+        <select id="teamA"></select>
+      </div>
+      <div class="vs">VS</div>
+      <div>
+        <label for="teamB">Team B</label>
+        <select id="teamB"></select>
+      </div>
+    </div>
+    <div class="loc-row">
+      <span class="lab">Site</span>
+      <div class="seg" role="group" aria-label="Game site">
+        <button type="button" data-loc="N" aria-pressed="true">Neutral</button>
+        <button type="button" data-loc="A" aria-pressed="false">Team A home</button>
+        <button type="button" data-loc="B" aria-pressed="false">Team B home</button>
+      </div>
+    </div>
+    <div class="proj-out" id="projOut">
+      <div class="score-line" id="scoreLine"></div>
+      <div class="wp-bar"><div class="a" id="wpA"></div><div class="b" id="wpB"></div></div>
+      <div class="wp-lab"><span id="wpLabA"></span><span id="wpLabB"></span></div>
+      <div class="proj-meta" id="projMeta"></div>
+      <div class="ff" id="ffBox">
+        <div class="ff-head">Four Factors matchup adjustments</div>
+        <div id="ffRows"></div>
+        <p class="ff-note" id="ffNote"></p>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div>
+  <h2 class="section-title">Kelly / EV Calculator</h2>
+  <p class="section-note">Turn a model win probability and the price on offer into an expected value and a stake size.</p>
+  <section class="proj calc" aria-label="Kelly and expected value staking calculator">
+    <div class="calc-grid">
+      <div>
+        <label for="kProb">Model win prob %</label>
+        <input type="number" id="kProb" min="1" max="99" step="0.5" value="56" inputmode="decimal" />
+      </div>
+      <div>
+        <label for="kOdds">American odds</label>
+        <input type="number" id="kOdds" step="5" value="-110" inputmode="numeric" />
+      </div>
+      <div>
+        <label for="kBank">Bankroll $</label>
+        <input type="number" id="kBank" min="0" step="10" value="100" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="calc-out" id="kOut">
+      <div class="ev-line">
+        <span>Expected value per $1 staked</span>
+        <span class="ev-big" id="kEv">$0.00</span>
+        <span id="kEdge"></span>
+      </div>
+      <div class="k-rows">
+        <div class="k-head"><span>Stake</span><span>% of bankroll</span><span>Bet</span></div>
+        <div class="k-row">
+          <div class="k-name">Full Kelly<span>the growth-maximizing stake</span></div>
+          <div class="k-pct" id="kFullPct">&mdash;</div>
+          <div class="k-amt" id="kFullAmt">&mdash;</div>
+        </div>
+        <div class="k-row">
+          <div class="k-name">Half Kelly<span>half the stake, most of the growth</span></div>
+          <div class="k-pct" id="kHalfPct">&mdash;</div>
+          <div class="k-amt" id="kHalfAmt">&mdash;</div>
+        </div>
+        <div class="k-row">
+          <div class="k-name">Quarter Kelly<span>the conservative default</span></div>
+          <div class="k-pct" id="kQtrPct">&mdash;</div>
+          <div class="k-amt" id="kQtrAmt">&mdash;</div>
+        </div>
+      </div>
+      <p class="calc-msg" id="kMsg" hidden></p>
+    </div>
+    <p class="calc-note"><strong>Full Kelly is aggressive.</strong> It assumes your win
+      probability is exactly right, and it swings hard when it isn't &mdash; a model that's
+      even a little overconfident gets punished. Most bettors stake a fraction of Kelly
+      (quarter or half) to smooth the ride and leave room for model error.</p>
+  </section>
+  </div>
+  </div>
+
+  <h2 class="section-title">How to Read It</h2>
+  <div class="gloss">
+    <div><b>AdjO / AdjD</b> &mdash; points scored / allowed per 100 possessions, adjusted for opponent quality. D1 average AdjO is 105.2. Lower AdjD is better.</div>
+    <div><b>Barthag</b> &mdash; Barttorvik's power rating: the chance a team beats an average D1 opponent. The single best one-number summary here.</div>
+    <div><b>Adj Tempo</b> &mdash; adjusted possessions per 40 minutes. D1 average is 71.1.</div>
+    <div><b>eFG%</b> &mdash; effective field-goal percentage; counts a made three as 1.5 baskets. The most important of the Four Factors.</div>
+    <div><b>TO% / TORD%</b> &mdash; share of possessions ending in a turnover, committed vs. forced. A pressure defense against a loose-ballhandling team is a classic March edge.</div>
+    <div><b>ORB% / DRB%</b> &mdash; offensive rebounds grabbed, and (as Barttorvik reports it) the offensive rebound rate allowed to opponents &mdash; lower DRB% is better.</div>
+    <div><b>FTR / FTRD</b> &mdash; free-throw rate: free-throw attempts per field-goal attempt, earned vs. allowed. Matters most in close, late games.</div>
+    <div><b>3P Rate</b> &mdash; share of shots taken from three. Volume is more stable than 3P% itself, so it tells you how a team's scoring is built.</div>
+    <div><b>WAB</b> &mdash; Wins Above Bubble: resume credit for wins against the schedule actually played. Negative means the resume is underwater this early.</div>
+  </div>
+
+  <footer>
+    Data: <a href="https://barttorvik.com/trank.php" target="_blank" rel="noopener">Barttorvik T-Rank</a>
+    (free), pulled Nov 7, 2026. Ratings are Barttorvik's; the matchup projector is an
+    efficiency model with Four Factors matchup adjustments built on them, shown for
+    tracking and education &mdash; no betting lines or bet log yet. Part of the
+    <a href="../index.html">Sportsbook Tracker</a> &mdash; the NHL page rebuilds every morning,
+    CBB data refreshes when new Barttorvik ratings are pulled.
+  </footer>
+
+</main>
+<script>
+var DATA = {"teams":[{"rk":1,"tm":"Duke","cf":"ACC","g":2,"rec":"2-0","ao":120.3,"aor":3,"ad":89.9,"adr":1,"bt":0.966,"efg":61.6,"efgd":37.4,"to":18.7,"tod":27.3,"orb":45.2,"drb":25.3,"ftr":55.4,"ftrd":22.6,"tp":70.8,"wab":0.06,"p2":67.5,"p2d":39.7,"p3":34.1,"p3d":23.1,"p3r":36.4,"p3rd":45.2,"net":30.4},{"rk":2,"tm":"Kansas","cf":"B12","g":2,"rec":"2-0","ao":119.7,"aor":5,"ad":91.5,"adr":3,"bt":0.9564,"efg":67.2,"efgd":35.8,"to":19.9,"tod":21.9,"orb":40.7,"drb":33.0,"ftr":44.8,"ftrd":16.1,"tp":72.2,"wab":0.21,"p2":75.0,"p2d":24.7,"p3":36.4,"p3d":33.3,"p3r":37.9,"p3rd":43.8,"net":28.2},{"rk":3,"tm":"Florida","cf":"SEC","g":2,"rec":"2-0","ao":119.7,"aor":4,"ad":92.1,"adr":7,"bt":0.9532,"efg":55.8,"efgd":38.5,"to":19.0,"tod":14.6,"orb":42.7,"drb":24.7,"ftr":54.9,"ftrd":38.5,"tp":72.9,"wab":0.7,"p2":48.4,"p2d":38.0,"p3":43.1,"p3d":26.3,"p3r":45.1,"p3rd":32.5,"net":27.6},{"rk":4,"tm":"Illinois","cf":"B10","g":2,"rec":"2-0","ao":122.4,"aor":1,"ad":94.4,"adr":12,"bt":0.9517,"efg":66.3,"efgd":33.7,"to":16.0,"tod":12.9,"orb":51.4,"drb":17.4,"ftr":25.0,"ftrd":17.7,"tp":73.3,"wab":0.14,"p2":76.9,"p2d":34.2,"p3":37.2,"p3d":22.1,"p3r":50.0,"p3rd":46.3,"net":28.0},{"rk":5,"tm":"Houston","cf":"B12","g":1,"rec":"1-0","ao":118.0,"aor":17,"ad":91.4,"adr":2,"bt":0.9493,"efg":58.8,"efgd":31.7,"to":17.2,"tod":25.1,"orb":40.6,"drb":27.7,"ftr":64.9,"ftrd":38.3,"tp":67.6,"wab":0.09,"p2":60.5,"p2d":33.3,"p3":35.7,"p3d":20.5,"p3r":24.6,"p3rd":65.0,"net":26.6},{"rk":6,"tm":"Virginia","cf":"ACC","g":2,"rec":"2-0","ao":119.5,"aor":7,"ad":93.2,"adr":9,"bt":0.9458,"efg":59.2,"efgd":49.1,"to":18.4,"tod":26.2,"orb":33.3,"drb":17.9,"ftr":30.8,"ftrd":26.4,"tp":71.2,"wab":0.09,"p2":62.9,"p2d":53.2,"p3":36.7,"p3d":29.2,"p3r":46.2,"p3rd":43.6,"net":26.3},{"rk":7,"tm":"Arizona","cf":"B12","g":2,"rec":"1-1","ao":117.6,"aor":19,"ad":92.0,"adr":6,"bt":0.9444,"efg":50.4,"efgd":50.4,"to":15.5,"tod":16.8,"orb":37.0,"drb":32.2,"ftr":52.4,"ftrd":33.6,"tp":74.3,"wab":-0.25,"p2":57.3,"p2d":42.3,"p3":25.0,"p3d":39.4,"p3r":34.9,"p3rd":48.2,"net":25.6},{"rk":8,"tm":"Michigan St.","cf":"B10","g":2,"rec":"2-0","ao":118.4,"aor":13,"ad":92.9,"adr":8,"bt":0.9419,"efg":62.6,"efgd":39.4,"to":17.8,"tod":19.2,"orb":46.9,"drb":22.7,"ftr":53.8,"ftrd":46.9,"tp":70.4,"wab":0.13,"p2":63.9,"p2d":39.4,"p3":40.4,"p3d":26.2,"p3r":39.5,"p3rd":37.2,"net":25.5},{"rk":9,"tm":"Gonzaga","cf":"P12","g":1,"rec":"1-0","ao":120.3,"aor":2,"ad":94.8,"adr":15,"bt":0.9392,"efg":49.1,"efgd":51.8,"to":14.6,"tod":14.6,"orb":29.4,"drb":22.6,"ftr":64.2,"ftrd":38.2,"tp":72.4,"wab":0.5,"p2":45.9,"p2d":61.8,"p3":37.5,"p3d":23.8,"p3r":30.2,"p3rd":38.2,"net":25.5},{"rk":10,"tm":"Louisville","cf":"ACC","g":2,"rec":"2-0","ao":118.6,"aor":11,"ad":94.0,"adr":11,"bt":0.935,"efg":56.9,"efgd":45.8,"to":12.0,"tod":18.4,"orb":46.9,"drb":22.2,"ftr":39.4,"ftrd":23.3,"tp":72.0,"wab":0.06,"p2":70.3,"p2d":40.6,"p3":30.1,"p3d":35.3,"p3r":53.3,"p3rd":42.5,"net":24.6},{"rk":11,"tm":"Connecticut","cf":"BE","g":2,"rec":"2-0","ao":115.7,"aor":35,"ad":91.9,"adr":5,"bt":0.9334,"efg":54.8,"efgd":40.5,"to":14.9,"tod":21.0,"orb":28.1,"drb":21.8,"ftr":52.2,"ftrd":44.5,"tp":69.1,"wab":0.7,"p2":56.2,"p2d":39.7,"p3":35.3,"p3d":27.7,"p3r":44.3,"p3rd":42.7,"net":23.8},{"rk":12,"tm":"Iowa St.","cf":"B12","g":2,"rec":"1-1","ao":114.3,"aor":48,"ad":91.8,"adr":4,"bt":0.9253,"efg":51.4,"efgd":47.2,"to":18.4,"tod":22.0,"orb":37.7,"drb":32.4,"ftr":62.4,"ftrd":51.4,"tp":70.8,"wab":-0.7,"p2":57.1,"p2d":37.3,"p3":25.0,"p3d":42.5,"p3r":29.4,"p3rd":37.4,"net":22.5},{"rk":13,"tm":"Texas Tech","cf":"B12","g":2,"rec":"2-0","ao":118.4,"aor":14,"ad":95.4,"adr":17,"bt":0.9232,"efg":50.9,"efgd":39.7,"to":15.0,"tod":30.0,"orb":31.2,"drb":20.6,"ftr":55.4,"ftrd":50.0,"tp":69.4,"wab":0.11,"p2":63.5,"p2d":40.5,"p3":26.7,"p3d":26.0,"p3r":53.6,"p3rd":54.3,"net":23.0},{"rk":14,"tm":"Nebraska","cf":"B10","g":1,"rec":"1-0","ao":116.9,"aor":26,"ad":94.4,"adr":13,"bt":0.9211,"efg":64.6,"efgd":48.2,"to":10.9,"tod":23.2,"orb":35.3,"drb":19.4,"ftr":43.1,"ftrd":23.2,"tp":70.9,"wab":0.02,"p2":60.0,"p2d":44.4,"p3":46.7,"p3d":34.5,"p3r":46.2,"p3rd":51.8,"net":22.5},{"rk":15,"tm":"Miami FL","cf":"ACC","g":2,"rec":"1-1","ao":118.3,"aor":15,"ad":95.6,"adr":19,"bt":0.9207,"efg":47.9,"efgd":45.7,"to":15.4,"tod":18.9,"orb":27.0,"drb":29.5,"ftr":40.7,"ftrd":41.4,"tp":70.8,"wab":-0.2,"p2":52.4,"p2d":40.6,"p3":25.0,"p3d":34.6,"p3r":30.5,"p3rd":44.8,"net":22.7},{"rk":16,"tm":"Tennessee","cf":"SEC","g":1,"rec":"1-0","ao":118.9,"aor":9,"ad":96.3,"adr":25,"bt":0.9186,"efg":57.7,"efgd":35.5,"to":13.9,"tod":16.7,"orb":34.4,"drb":29.5,"ftr":24.6,"ftrd":37.1,"tp":69.3,"wab":0.04,"p2":64.3,"p2d":37.1,"p3":30.4,"p3d":22.2,"p3r":35.4,"p3rd":43.5,"net":22.6},{"rk":17,"tm":"Texas","cf":"SEC","g":2,"rec":"2-0","ao":118.8,"aor":10,"ad":96.3,"adr":26,"bt":0.9177,"efg":69.6,"efgd":41.5,"to":14.1,"tod":26.8,"orb":48.1,"drb":24.3,"ftr":45.8,"ftrd":33.0,"tp":71.0,"wab":0.03,"p2":72.4,"p2d":43.3,"p3":43.2,"p3d":25.6,"p3r":36.7,"p3rd":36.8,"net":22.5},{"rk":18,"tm":"Vanderbilt","cf":"SEC","g":2,"rec":"2-0","ao":115.2,"aor":38,"ad":93.5,"adr":10,"bt":0.9162,"efg":54.7,"efgd":41.5,"to":15.4,"tod":25.7,"orb":41.2,"drb":18.3,"ftr":28.3,"ftrd":27.0,"tp":71.3,"wab":0.24,"p2":54.3,"p2d":47.2,"p3":37.0,"p3d":23.4,"p3r":36.2,"p3rd":47.0,"net":21.7},{"rk":19,"tm":"UCLA","cf":"B10","g":2,"rec":"2-0","ao":118.4,"aor":12,"ad":96.2,"adr":23,"bt":0.916,"efg":54.6,"efgd":41.1,"to":9.7,"tod":18.2,"orb":34.5,"drb":24.7,"ftr":41.8,"ftrd":40.7,"tp":69.5,"wab":0.8,"p2":49.4,"p2d":42.4,"p3":41.4,"p3d":26.6,"p3r":41.1,"p3rd":52.0,"net":22.2},{"rk":20,"tm":"Michigan","cf":"B10","g":2,"rec":"1-1","ao":116.8,"aor":27,"ad":95.2,"adr":16,"bt":0.9134,"efg":47.8,"efgd":42.8,"to":15.6,"tod":18.3,"orb":38.2,"drb":38.5,"ftr":32.1,"ftrd":55.9,"tp":72.3,"wab":-0.23,"p2":59.7,"p2d":40.0,"p3":22.6,"p3d":31.2,"p3r":46.3,"p3rd":40.7,"net":21.6},{"rk":21,"tm":"BYU","cf":"B12","g":2,"rec":"2-0","ao":119.6,"aor":6,"ad":97.8,"adr":44,"bt":0.9102,"efg":64.7,"efgd":51.7,"to":11.3,"tod":16.3,"orb":37.3,"drb":25.4,"ftr":34.9,"ftrd":26.4,"tp":71.7,"wab":0.7,"p2":63.2,"p2d":52.9,"p3":44.3,"p3d":33.3,"p3r":47.3,"p3rd":42.1,"net":21.8},{"rk":22,"tm":"Marquette","cf":"BE","g":2,"rec":"2-0","ao":115.5,"aor":36,"ad":94.5,"adr":14,"bt":0.9097,"efg":54.0,"efgd":29.5,"to":10.6,"tod":28.1,"orb":50.7,"drb":30.2,"ftr":26.3,"ftrd":7.7,"tp":71.3,"wab":0.07,"p2":64.9,"p2d":33.9,"p3":26.7,"p3d":16.4,"p3r":43.8,"p3rd":47.0,"net":21.0},{"rk":23,"tm":"Alabama","cf":"SEC","g":2,"rec":"2-0","ao":117.2,"aor":23,"ad":96.3,"adr":24,"bt":0.9059,"efg":50.0,"efgd":51.1,"to":14.4,"tod":25.3,"orb":39.2,"drb":34.0,"ftr":41.1,"ftrd":22.7,"tp":77.2,"wab":0.18,"p2":54.3,"p2d":39.1,"p3":30.9,"p3d":41.7,"p3r":53.6,"p3rd":51.1,"net":20.9},{"rk":24,"tm":"Arkansas","cf":"SEC","g":1,"rec":"1-0","ao":116.1,"aor":33,"ad":95.5,"adr":18,"bt":0.9041,"efg":59.4,"efgd":44.4,"to":14.1,"tod":30.8,"orb":48.6,"drb":25.7,"ftr":65.6,"ftrd":35.2,"tp":72.7,"wab":0.01,"p2":63.0,"p2d":45.5,"p3":33.3,"p3d":28.6,"p3r":28.1,"p3rd":38.9,"net":20.6},{"rk":25,"tm":"Ohio St.","cf":"B10","g":2,"rec":"1-1","ao":117.9,"aor":18,"ad":97.1,"adr":33,"bt":0.9032,"efg":52.5,"efgd":53.3,"to":16.1,"tod":14.7,"orb":38.5,"drb":26.0,"ftr":44.5,"ftrd":36.7,"tp":70.6,"wab":-0.31,"p2":59.7,"p2d":54.0,"p3":27.7,"p3d":35.1,"p3r":39.5,"p3rd":47.5,"net":20.8},{"rk":26,"tm":"Indiana","cf":"B10","g":2,"rec":"2-0","ao":118.0,"aor":16,"ad":97.7,"adr":40,"bt":0.8976,"efg":58.8,"efgd":53.4,"to":16.7,"tod":24.7,"orb":44.3,"drb":22.4,"ftr":47.5,"ftrd":26.5,"tp":70.1,"wab":0.04,"p2":62.9,"p2d":58.6,"p3":36.2,"p3d":28.1,"p3r":48.3,"p3rd":31.4,"net":20.3},{"rk":27,"tm":"Missouri","cf":"SEC","g":2,"rec":"1-1","ao":117.5,"aor":21,"ad":97.7,"adr":39,"bt":0.8935,"efg":58.6,"efgd":49.6,"to":9.8,"tod":16.7,"orb":39.5,"drb":23.7,"ftr":31.4,"ftrd":25.6,"tp":70.7,"wab":-0.5,"p2":57.6,"p2d":45.0,"p3":40.0,"p3d":39.0,"p3r":39.3,"p3rd":33.9,"net":19.8},{"rk":28,"tm":"Texas A&M","cf":"SEC","g":2,"rec":"2-0","ao":116.0,"aor":34,"ad":96.5,"adr":28,"bt":0.8923,"efg":59.1,"efgd":39.6,"to":12.2,"tod":29.2,"orb":31.6,"drb":32.9,"ftr":47.4,"ftrd":35.2,"tp":74.0,"wab":0.1,"p2":60.0,"p2d":35.1,"p3":38.5,"p3d":31.2,"p3r":38.0,"p3rd":38.4,"net":19.5},{"rk":29,"tm":"Kentucky","cf":"SEC","g":2,"rec":"2-0","ao":117.2,"aor":24,"ad":97.9,"adr":46,"bt":0.8877,"efg":61.0,"efgd":46.7,"to":15.7,"tod":15.0,"orb":41.0,"drb":32.1,"ftr":24.4,"ftrd":31.1,"tp":71.0,"wab":0.12,"p2":65.6,"p2d":47.1,"p3":37.3,"p3d":31.0,"p3r":48.0,"p3rd":58.2,"net":19.3},{"rk":30,"tm":"Villanova","cf":"BE","g":2,"rec":"1-1","ao":116.8,"aor":28,"ad":97.8,"adr":43,"bt":0.8855,"efg":57.5,"efgd":41.1,"to":17.7,"tod":15.6,"orb":35.7,"drb":31.9,"ftr":25.4,"ftrd":41.9,"tp":70.5,"wab":-0.6,"p2":59.4,"p2d":34.6,"p3":36.8,"p3d":34.8,"p3r":45.2,"p3rd":37.1,"net":19.0},{"rk":31,"tm":"St. John's","cf":"BE","g":1,"rec":"1-0","ao":114.3,"aor":46,"ad":95.9,"adr":21,"bt":0.8824,"efg":46.8,"efgd":50.0,"to":17.3,"tod":23.9,"orb":31.6,"drb":15.2,"ftr":40.3,"ftrd":25.0,"tp":73.1,"wab":0.07,"p2":47.6,"p2d":44.4,"p3":30.0,"p3d":40.0,"p3r":32.3,"p3rd":35.7,"net":18.4},{"rk":32,"tm":"USC","cf":"B10","g":1,"rec":"1-0","ao":114.2,"aor":49,"ad":96.1,"adr":22,"bt":0.8802,"efg":67.2,"efgd":41.9,"to":18.6,"tod":22.6,"orb":26.9,"drb":28.6,"ftr":41.4,"ftrd":24.2,"tp":72.3,"wab":0.04,"p2":58.3,"p2d":43.6,"p3":54.5,"p3d":26.1,"p3r":37.9,"p3rd":37.1,"net":18.1},{"rk":33,"tm":"Cincinnati","cf":"B12","g":2,"rec":"2-0","ao":113.9,"aor":51,"ad":95.9,"adr":20,"bt":0.8791,"efg":52.0,"efgd":44.1,"to":15.6,"tod":27.7,"orb":41.4,"drb":24.6,"ftr":31.5,"ftrd":36.3,"tp":71.5,"wab":0.15,"p2":56.5,"p2d":47.1,"p3":31.0,"p3d":27.5,"p3r":45.7,"p3rd":50.0,"net":18.0},{"rk":34,"tm":"N.C. State","cf":"ACC","g":2,"rec":"2-0","ao":118.9,"aor":8,"ad":100.1,"adr":80,"bt":0.8781,"efg":59.6,"efgd":48.7,"to":18.9,"tod":18.1,"orb":33.3,"drb":27.1,"ftr":26.3,"ftrd":15.3,"tp":66.1,"wab":0.14,"p2":57.1,"p2d":54.7,"p3":41.4,"p3d":27.8,"p3r":50.9,"p3rd":45.8,"net":18.8},{"rk":35,"tm":"Auburn","cf":"SEC","g":1,"rec":"1-0","ao":117.2,"aor":25,"ad":98.7,"adr":62,"bt":0.8778,"efg":60.3,"efgd":35.8,"to":19.3,"tod":19.3,"orb":47.2,"drb":35.3,"ftr":42.9,"ftrd":28.4,"tp":71.2,"wab":0.04,"p2":54.1,"p2d":35.3,"p3":46.2,"p3d":24.2,"p3r":41.3,"p3rd":49.3,"net":18.5},{"rk":36,"tm":"Oklahoma St.","cf":"B12","g":2,"rec":"2-0","ao":117.6,"aor":20,"ad":99.2,"adr":70,"bt":0.8767,"efg":63.6,"efgd":44.5,"to":14.9,"tod":25.2,"orb":41.8,"drb":26.1,"ftr":35.3,"ftrd":26.9,"tp":74.0,"wab":0.09,"p2":58.2,"p2d":48.5,"p3":47.4,"p3d":26.4,"p3r":41.9,"p3rd":44.5,"net":18.4},{"rk":37,"tm":"Virginia Tech","cf":"ACC","g":2,"rec":"2-0","ao":115.4,"aor":37,"ad":97.7,"adr":41,"bt":0.8707,"efg":57.4,"efgd":42.5,"to":12.3,"tod":28.8,"orb":41.4,"drb":31.4,"ftr":40.6,"ftrd":48.1,"tp":70.7,"wab":0.06,"p2":53.8,"p2d":44.6,"p3":42.0,"p3d":25.0,"p3r":39.1,"p3rd":30.2,"net":17.7},{"rk":38,"tm":"Maryland","cf":"B10","g":1,"rec":"1-0","ao":116.6,"aor":29,"ad":98.9,"adr":68,"bt":0.8693,"efg":52.1,"efgd":54.7,"to":18.1,"tod":25.1,"orb":63.6,"drb":18.8,"ftr":43.1,"ftrd":26.4,"tp":70.4,"wab":0.01,"p2":61.4,"p2d":50.0,"p3":25.0,"p3d":38.7,"p3r":38.9,"p3rd":58.5,"net":17.7},{"rk":39,"tm":"Oregon","cf":"B10","g":2,"rec":"2-0","ao":116.4,"aor":30,"ad":98.8,"adr":66,"bt":0.8688,"efg":65.9,"efgd":49.1,"to":15.5,"tod":16.2,"orb":33.3,"drb":21.6,"ftr":27.6,"ftrd":31.9,"tp":71.4,"wab":0.13,"p2":69.0,"p2d":46.2,"p3":38.9,"p3d":35.3,"p3r":29.3,"p3rd":44.0,"net":17.6},{"rk":40,"tm":"Baylor","cf":"B12","g":2,"rec":"2-0","ao":116.1,"aor":32,"ad":98.7,"adr":64,"bt":0.8665,"efg":53.3,"efgd":40.9,"to":15.6,"tod":31.2,"orb":44.0,"drb":25.3,"ftr":51.8,"ftrd":39.1,"tp":71.9,"wab":0.04,"p2":65.8,"p2d":44.8,"p3":24.1,"p3d":23.3,"p3r":42.3,"p3rd":39.1,"net":17.4},{"rk":41,"tm":"Georgia","cf":"SEC","g":2,"rec":"2-0","ao":117.5,"aor":22,"ad":99.9,"adr":79,"bt":0.866,"efg":52.4,"efgd":48.6,"to":10.1,"tod":23.1,"orb":39.7,"drb":32.4,"ftr":46.0,"ftrd":38.5,"tp":72.8,"wab":0.06,"p2":56.8,"p2d":44.9,"p3":30.8,"p3d":38.7,"p3r":41.3,"p3rd":28.4,"net":17.6},{"rk":42,"tm":"Iowa","cf":"B10","g":2,"rec":"2-0","ao":113.8,"aor":52,"ad":96.8,"adr":30,"bt":0.8656,"efg":64.0,"efgd":35.9,"to":17.4,"tod":22.7,"orb":36.5,"drb":23.0,"ftr":40.5,"ftrd":41.4,"tp":66.8,"wab":0.07,"p2":73.2,"p2d":41.9,"p3":36.4,"p3d":12.0,"p3r":49.5,"p3rd":25.3,"net":17.0},{"rk":43,"tm":"Purdue","cf":"B10","g":2,"rec":"0-2","ao":114.3,"aor":47,"ad":97.2,"adr":34,"bt":0.8655,"efg":46.2,"efgd":50.4,"to":14.4,"tod":13.0,"orb":28.2,"drb":26.0,"ftr":44.5,"ftrd":40.3,"tp":68.1,"wab":-1.1,"p2":57.1,"p2d":53.1,"p3":20.4,"p3d":30.2,"p3r":41.2,"p3rd":34.7,"net":17.1},{"rk":44,"tm":"West Virginia","cf":"B12","g":2,"rec":"2-0","ao":113.4,"aor":57,"ad":96.4,"adr":27,"bt":0.8651,"efg":61.8,"efgd":46.5,"to":11.6,"tod":26.8,"orb":31.8,"drb":15.3,"ftr":36.6,"ftrd":24.2,"tp":68.1,"wab":0.06,"p2":59.7,"p2d":45.8,"p3":42.6,"p3d":31.4,"p3r":49.6,"p3rd":51.5,"net":17.0},{"rk":45,"tm":"Xavier","cf":"BE","g":2,"rec":"2-0","ao":115.2,"aor":39,"ad":98.0,"adr":48,"bt":0.8643,"efg":56.8,"efgd":32.1,"to":19.2,"tod":27.2,"orb":40.0,"drb":33.0,"ftr":40.8,"ftrd":29.3,"tp":74.1,"wab":0.11,"p2":62.5,"p2d":35.1,"p3":31.1,"p3d":18.4,"p3r":36.0,"p3rd":39.8,"net":17.2},{"rk":46,"tm":"TCU","cf":"B12","g":2,"rec":"2-0","ao":113.7,"aor":54,"ad":96.8,"adr":31,"bt":0.8637,"efg":57.0,"efgd":40.4,"to":16.2,"tod":28.3,"orb":49.3,"drb":35.8,"ftr":55.8,"ftrd":33.9,"tp":71.4,"wab":0.06,"p2":47.0,"p2d":43.4,"p3":50.0,"p3d":21.9,"p3r":35.7,"p3rd":27.8,"net":16.9},{"rk":47,"tm":"Clemson","cf":"ACC","g":2,"rec":"2-0","ao":114.9,"aor":41,"ad":98.2,"adr":50,"bt":0.8591,"efg":55.9,"efgd":55.6,"to":13.9,"tod":15.4,"orb":29.9,"drb":17.5,"ftr":53.6,"ftrd":18.1,"tp":68.7,"wab":0.11,"p2":50.8,"p2d":56.2,"p3":41.2,"p3d":36.5,"p3r":46.4,"p3rd":44.8,"net":16.7},{"rk":48,"tm":"Creighton","cf":"BE","g":2,"rec":"2-0","ao":114.9,"aor":42,"ad":98.3,"adr":55,"bt":0.8577,"efg":48.8,"efgd":45.4,"to":17.4,"tod":28.5,"orb":39.8,"drb":20.9,"ftr":34.1,"ftrd":21.3,"tp":71.1,"wab":0.05,"p2":50.0,"p2d":50.9,"p3":31.7,"p3d":26.4,"p3r":48.8,"p3rd":49.1,"net":16.6},{"rk":49,"tm":"North Carolina","cf":"ACC","g":2,"rec":"2-0","ao":113.4,"aor":58,"ad":97.0,"adr":32,"bt":0.8575,"efg":55.1,"efgd":40.2,"to":11.4,"tod":14.7,"orb":28.4,"drb":33.3,"ftr":50.0,"ftrd":39.8,"tp":75.5,"wab":0.12,"p2":57.5,"p2d":32.9,"p3":34.5,"p3d":34.7,"p3r":43.0,"p3rd":38.3,"net":16.4},{"rk":50,"tm":"Oklahoma","cf":"SEC","g":2,"rec":"1-1","ao":116.2,"aor":31,"ad":99.4,"adr":74,"bt":0.8573,"efg":51.6,"efgd":46.1,"to":20.0,"tod":23.7,"orb":44.9,"drb":37.5,"ftr":31.1,"ftrd":25.2,"tp":70.3,"wab":-0.9,"p2":58.1,"p2d":45.7,"p3":30.0,"p3d":31.1,"p3r":49.2,"p3rd":39.1,"net":16.8},{"rk":51,"tm":"Grand Canyon","cf":"MWC","g":1,"rec":"1-0","ao":113.6,"aor":55,"ad":97.3,"adr":35,"bt":0.8558,"efg":59.2,"efgd":45.8,"to":18.6,"tod":17.3,"orb":48.6,"drb":29.3,"ftr":63.1,"ftrd":67.8,"tp":72.5,"wab":0.02,"p2":71.0,"p2d":48.8,"p3":32.4,"p3d":25.0,"p3r":52.3,"p3rd":27.1,"net":16.3},{"rk":52,"tm":"Providence","cf":"BE","g":1,"rec":"1-0","ao":114.6,"aor":44,"ad":98.4,"adr":56,"bt":0.8524,"efg":52.9,"efgd":44.2,"to":11.4,"tod":32.8,"orb":40.0,"drb":22.9,"ftr":27.9,"ftrd":65.1,"tp":73.5,"wab":0.02,"p2":55.3,"p2d":35.0,"p3":33.3,"p3d":34.8,"p3r":44.1,"p3rd":53.5,"net":16.2},{"rk":53,"tm":"Florida St.","cf":"ACC","g":2,"rec":"2-0","ao":114.0,"aor":50,"ad":98.5,"adr":59,"bt":0.8442,"efg":55.4,"efgd":48.3,"to":12.7,"tod":18.7,"orb":47.1,"drb":17.8,"ftr":56.6,"ftrd":30.8,"tp":73.8,"wab":0.13,"p2":63.6,"p2d":43.8,"p3":28.8,"p3d":35.8,"p3r":40.3,"p3rd":45.3,"net":15.5},{"rk":54,"tm":"Wisconsin","cf":"B10","g":2,"rec":"2-0","ao":112.9,"aor":63,"ad":97.5,"adr":37,"bt":0.8429,"efg":49.2,"efgd":46.8,"to":13.0,"tod":18.0,"orb":33.8,"drb":20.0,"ftr":27.7,"ftrd":28.8,"tp":71.1,"wab":0.09,"p2":54.1,"p2d":41.8,"p3":28.6,"p3d":36.4,"p3r":43.1,"p3rd":39.6,"net":15.4},{"rk":55,"tm":"LSU","cf":"SEC","g":2,"rec":"2-0","ao":113.2,"aor":61,"ad":98.3,"adr":52,"bt":0.8357,"efg":58.3,"efgd":28.7,"to":16.6,"tod":19.1,"orb":39.4,"drb":24.2,"ftr":32.4,"ftrd":50.8,"tp":71.5,"wab":0.06,"p2":70.8,"p2d":26.9,"p3":24.0,"p3d":20.8,"p3r":36.0,"p3rd":44.2,"net":14.9},{"rk":56,"tm":"Mississippi","cf":"SEC","g":2,"rec":"2-0","ao":112.6,"aor":65,"ad":97.8,"adr":45,"bt":0.8354,"efg":60.3,"efgd":46.6,"to":12.8,"tod":29.8,"orb":34.8,"drb":26.4,"ftr":38.9,"ftrd":38.2,"tp":71.1,"wab":0.09,"p2":62.5,"p2d":38.8,"p3":37.2,"p3d":35.8,"p3r":32.8,"p3rd":52.0,"net":14.8},{"rk":57,"tm":"San Diego St.","cf":"P12","g":1,"rec":"1-0","ao":113.3,"aor":60,"ad":98.4,"adr":57,"bt":0.8344,"efg":54.4,"efgd":45.7,"to":18.8,"tod":11.3,"orb":51.4,"drb":25.6,"ftr":50.0,"ftrd":34.8,"tp":71.4,"wab":0.05,"p2":55.6,"p2d":56.8,"p3":34.8,"p3d":21.9,"p3r":33.8,"p3rd":46.4,"net":14.9},{"rk":58,"tm":"SMU","cf":"ACC","g":2,"rec":"2-0","ao":113.8,"aor":53,"ad":98.9,"adr":67,"bt":0.8339,"efg":62.1,"efgd":41.4,"to":25.1,"tod":23.2,"orb":29.8,"drb":28.9,"ftr":57.0,"ftrd":39.3,"tp":72.9,"wab":0.05,"p2":57.4,"p2d":38.8,"p3":45.7,"p3d":31.0,"p3r":43.0,"p3rd":34.4,"net":14.9},{"rk":59,"tm":"VCU","cf":"A10","g":1,"rec":"1-0","ao":113.0,"aor":62,"ad":98.3,"adr":54,"bt":0.8323,"efg":46.2,"efgd":46.6,"to":18.3,"tod":22.6,"orb":40.9,"drb":38.2,"ftr":92.3,"ftrd":35.6,"tp":72.4,"wab":0.05,"p2":44.4,"p2d":46.5,"p3":32.0,"p3d":31.2,"p3r":48.1,"p3rd":27.1,"net":14.7},{"rk":60,"tm":"Saint Louis","cf":"A10","g":2,"rec":"2-0","ao":114.8,"aor":43,"ad":100.1,"adr":81,"bt":0.8273,"efg":65.3,"efgd":43.8,"to":13.6,"tod":15.0,"orb":19.7,"drb":31.5,"ftr":34.7,"ftrd":41.1,"tp":72.5,"wab":0.6,"p2":62.9,"p2d":47.4,"p3":45.8,"p3d":25.5,"p3r":40.7,"p3rd":39.5,"net":14.7},{"rk":61,"tm":"Saint Mary's","cf":"WCC","g":2,"rec":"2-0","ao":111.7,"aor":76,"ad":97.5,"adr":38,"bt":0.8263,"efg":67.5,"efgd":50.4,"to":13.2,"tod":20.1,"orb":32.2,"drb":30.7,"ftr":28.6,"ftrd":35.3,"tp":70.7,"wab":0.25,"p2":62.8,"p2d":47.8,"p3":50.0,"p3d":36.0,"p3r":38.1,"p3rd":42.0,"net":14.2},{"rk":62,"tm":"Mississippi St.","cf":"SEC","g":2,"rec":"2-0","ao":115.1,"aor":40,"ad":100.7,"adr":93,"bt":0.8219,"efg":57.3,"efgd":46.5,"to":14.9,"tod":17.1,"orb":44.4,"drb":26.0,"ftr":50.8,"ftrd":39.8,"tp":71.9,"wab":0.08,"p2":56.9,"p2d":50.0,"p3":38.5,"p3d":27.7,"p3r":41.9,"p3rd":41.6,"net":14.4},{"rk":63,"tm":"Georgetown","cf":"BE","g":1,"rec":"1-0","ao":112.1,"aor":69,"ad":98.2,"adr":49,"bt":0.8215,"efg":51.6,"efgd":46.0,"to":11.8,"tod":20.7,"orb":30.3,"drb":30.0,"ftr":27.0,"ftrd":3.2,"tp":70.2,"wab":0.02,"p2":59.5,"p2d":40.0,"p3":26.9,"p3d":35.7,"p3r":41.3,"p3rd":44.4,"net":13.9},{"rk":64,"tm":"Utah St.","cf":"P12","g":1,"rec":"1-0","ao":113.3,"aor":59,"ad":99.2,"adr":72,"bt":0.8215,"efg":62.1,"efgd":37.7,"to":19.5,"tod":20.9,"orb":51.7,"drb":25.0,"ftr":35.5,"ftrd":42.1,"tp":68.9,"wab":0.02,"p2":68.9,"p2d":53.1,"p3":29.4,"p3d":12.0,"p3r":27.4,"p3rd":43.9,"net":14.1},{"rk":65,"tm":"Arizona St.","cf":"B12","g":2,"rec":"2-0","ao":112.8,"aor":64,"ad":98.8,"adr":65,"bt":0.8214,"efg":55.5,"efgd":50.9,"to":11.6,"tod":19.4,"orb":37.3,"drb":30.0,"ftr":38.1,"ftrd":25.2,"tp":67.8,"wab":0.14,"p2":61.4,"p2d":44.7,"p3":31.2,"p3d":42.9,"p3r":40.7,"p3rd":31.5,"net":14.0},{"rk":66,"tm":"UCF","cf":"B12","g":2,"rec":"2-0","ao":114.4,"aor":45,"ad":100.4,"adr":87,"bt":0.8174,"efg":54.8,"efgd":54.0,"to":7.5,"tod":16.3,"orb":27.1,"drb":29.9,"ftr":49.2,"ftrd":32.3,"tp":72.9,"wab":0.13,"p2":56.5,"p2d":52.3,"p3":34.1,"p3d":37.3,"p3r":32.5,"p3rd":47.6,"net":14.0},{"rk":67,"tm":"New Mexico","cf":"MWC","g":1,"rec":"1-0","ao":111.6,"aor":77,"ad":98.3,"adr":53,"bt":0.8114,"efg":67.5,"efgd":41.8,"to":18.3,"tod":19.6,"orb":29.6,"drb":17.1,"ftr":40.0,"ftrd":23.0,"tp":72.2,"wab":0.02,"p2":68.6,"p2d":53.6,"p3":44.0,"p3d":21.2,"p3r":41.7,"p3rd":54.1,"net":13.3},{"rk":68,"tm":"DePaul","cf":"BE","g":2,"rec":"2-0","ao":110.1,"aor":95,"ad":97.3,"adr":36,"bt":0.8049,"efg":52.2,"efgd":47.2,"to":15.0,"tod":12.9,"orb":25.4,"drb":26.0,"ftr":40.5,"ftrd":20.5,"tp":70.3,"wab":0.23,"p2":55.8,"p2d":45.2,"p3":32.8,"p3d":33.3,"p3r":55.2,"p3rd":42.5,"net":12.8},{"rk":69,"tm":"High Point","cf":"BSth","g":2,"rec":"2-0","ao":112.4,"aor":67,"ad":99.5,"adr":76,"bt":0.8018,"efg":52.0,"efgd":37.2,"to":21.7,"tod":19.4,"orb":26.6,"drb":22.8,"ftr":41.2,"ftrd":32.1,"tp":72.1,"wab":0.17,"p2":57.4,"p2d":38.7,"p3":29.3,"p3d":23.4,"p3r":40.2,"p3rd":43.1,"net":12.9},{"rk":70,"tm":"Syracuse","cf":"ACC","g":2,"rec":"2-0","ao":111.9,"aor":70,"ad":99.4,"adr":73,"bt":0.7964,"efg":58.8,"efgd":43.0,"to":9.9,"tod":18.3,"orb":37.3,"drb":16.7,"ftr":40.8,"ftrd":23.4,"tp":69.4,"wab":0.03,"p2":63.4,"p2d":45.6,"p3":34.7,"p3d":25.6,"p3r":40.8,"p3rd":36.4,"net":12.5},{"rk":71,"tm":"George Washington","cf":"A10","g":1,"rec":"1-0","ao":110.8,"aor":87,"ad":98.4,"adr":58,"bt":0.7958,"efg":67.9,"efgd":25.9,"to":18.2,"tod":26.6,"orb":28.0,"drb":23.3,"ftr":28.6,"ftrd":22.4,"tp":72.1,"wab":0.02,"p2":58.6,"p2d":30.0,"p3":51.9,"p3d":11.1,"p3r":48.2,"p3rd":31.0,"net":12.4},{"rk":72,"tm":"Seton Hall","cf":"BE","g":2,"rec":"2-0","ao":108.5,"aor":116,"ad":96.7,"adr":29,"bt":0.79,"efg":50.0,"efgd":37.1,"to":21.3,"tod":22.1,"orb":32.2,"drb":23.0,"ftr":53.6,"ftrd":29.5,"tp":68.6,"wab":0.08,"p2":50.9,"p2d":34.4,"p3":32.5,"p3d":27.3,"p3r":41.2,"p3rd":41.9,"net":11.8},{"rk":73,"tm":"Minnesota","cf":"B10","g":2,"rec":"2-0","ao":109.6,"aor":102,"ad":97.7,"adr":42,"bt":0.7879,"efg":55.3,"efgd":36.4,"to":15.0,"tod":14.3,"orb":36.1,"drb":23.9,"ftr":28.7,"ftrd":31.4,"tp":68.0,"wab":0.12,"p2":58.1,"p2d":46.3,"p3":35.0,"p3d":18.8,"p3r":49.2,"p3rd":54.2,"net":11.9},{"rk":74,"tm":"Wichita St.","cf":"Amer","g":1,"rec":"1-0","ao":110.9,"aor":83,"ad":99.0,"adr":69,"bt":0.7867,"efg":42.7,"efgd":40.2,"to":4.0,"tod":14.5,"orb":26.5,"drb":26.7,"ftr":29.3,"ftrd":34.8,"tp":71.0,"wab":0.06,"p2":41.7,"p2d":42.2,"p3":29.6,"p3d":23.8,"p3r":36.0,"p3rd":31.8,"net":11.9},{"rk":75,"tm":"Dayton","cf":"A10","g":1,"rec":"1-0","ao":109.6,"aor":101,"ad":98.2,"adr":51,"bt":0.7787,"efg":54.6,"efgd":37.1,"to":17.3,"tod":15.8,"orb":51.4,"drb":25.6,"ftr":32.3,"ftrd":43.1,"tp":69.6,"wab":0.02,"p2":56.4,"p2d":51.5,"p3":34.6,"p3d":12.0,"p3r":40.0,"p3rd":43.1,"net":11.4},{"rk":76,"tm":"Northwestern","cf":"B10","g":2,"rec":"2-0","ao":112.2,"aor":68,"ad":100.7,"adr":89,"bt":0.7777,"efg":63.5,"efgd":45.6,"to":15.2,"tod":16.8,"orb":38.2,"drb":24.6,"ftr":42.3,"ftrd":38.8,"tp":68.0,"wab":0.07,"p2":58.8,"p2d":51.8,"p3":45.3,"p3d":25.5,"p3r":51.0,"p3rd":45.6,"net":11.5},{"rk":77,"tm":"Notre Dame","cf":"ACC","g":2,"rec":"2-0","ao":111.8,"aor":74,"ad":100.5,"adr":88,"bt":0.7732,"efg":53.8,"efgd":50.5,"to":17.9,"tod":23.2,"orb":37.1,"drb":24.6,"ftr":33.3,"ftrd":31.1,"tp":69.1,"wab":0.6,"p2":44.3,"p2d":52.1,"p3":42.9,"p3d":32.7,"p3r":47.9,"p3rd":53.4,"net":11.3},{"rk":78,"tm":"Nevada","cf":"MWC","g":1,"rec":"1-0","ao":109.6,"aor":100,"ad":98.6,"adr":60,"bt":0.7728,"efg":52.9,"efgd":29.6,"to":12.0,"tod":28.4,"orb":50.0,"drb":29.7,"ftr":33.8,"ftrd":46.9,"tp":69.0,"wab":0.06,"p2":57.1,"p2d":32.3,"p3":30.8,"p3d":16.7,"p3r":38.2,"p3rd":36.7,"net":11.0},{"rk":79,"tm":"Rutgers","cf":"B10","g":1,"rec":"1-0","ao":112.4,"aor":66,"ad":101.1,"adr":97,"bt":0.772,"efg":57.5,"efgd":47.0,"to":16.9,"tod":26.1,"orb":38.2,"drb":22.6,"ftr":30.0,"ftrd":16.0,"tp":70.3,"wab":0.02,"p2":56.8,"p2d":43.3,"p3":39.1,"p3d":35.0,"p3r":38.3,"p3rd":40.0,"net":11.3},{"rk":80,"tm":"Santa Clara","cf":"WCC","g":2,"rec":"2-0","ao":111.8,"aor":75,"ad":101.0,"adr":96,"bt":0.7625,"efg":56.4,"efgd":42.5,"to":15.8,"tod":21.0,"orb":32.4,"drb":36.8,"ftr":31.8,"ftrd":40.2,"tp":73.5,"wab":0.11,"p2":52.9,"p2d":43.4,"p3":40.3,"p3d":27.5,"p3r":47.0,"p3rd":40.2,"net":10.8},{"rk":81,"tm":"McNeese St.","cf":"Slnd","g":2,"rec":"1-1","ao":110.4,"aor":92,"ad":99.7,"adr":78,"bt":0.7625,"efg":55.6,"efgd":51.9,"to":16.9,"tod":19.1,"orb":40.0,"drb":36.2,"ftr":29.0,"ftrd":48.6,"tp":69.8,"wab":-0.44,"p2":52.2,"p2d":55.9,"p3":40.0,"p3d":31.2,"p3r":44.4,"p3rd":44.9,"net":10.7},{"rk":82,"tm":"Washington","cf":"B10","g":1,"rec":"1-0","ao":111.9,"aor":73,"ad":101.1,"adr":99,"bt":0.7608,"efg":55.6,"efgd":49.2,"to":13.9,"tod":13.9,"orb":30.3,"drb":33.3,"ftr":66.7,"ftrd":41.9,"tp":71.0,"wab":0.06,"p2":57.7,"p2d":50.0,"p3":35.7,"p3d":31.8,"p3r":51.9,"p3rd":35.5,"net":10.8},{"rk":83,"tm":"Colorado","cf":"B12","g":1,"rec":"1-0","ao":110.9,"aor":84,"ad":100.8,"adr":94,"bt":0.7498,"efg":69.0,"efgd":42.1,"to":15.9,"tod":18.8,"orb":38.5,"drb":21.6,"ftr":34.5,"ftrd":29.8,"tp":71.4,"wab":0.03,"p2":64.1,"p2d":48.6,"p3":52.6,"p3d":20.0,"p3r":32.8,"p3rd":35.1,"net":10.1},{"rk":84,"tm":"Butler","cf":"BE","g":2,"rec":"2-0","ao":110.7,"aor":90,"ad":100.7,"adr":90,"bt":0.7484,"efg":64.2,"efgd":43.6,"to":21.2,"tod":16.4,"orb":50.0,"drb":23.1,"ftr":24.6,"ftrd":22.4,"tp":75.2,"wab":0.03,"p2":68.1,"p2d":51.2,"p3":41.4,"p3d":20.0,"p3r":64.9,"p3rd":36.0,"net":10.0},{"rk":85,"tm":"George Mason","cf":"A10","g":2,"rec":"2-0","ao":109.4,"aor":104,"ad":99.6,"adr":77,"bt":0.7458,"efg":47.9,"efgd":37.0,"to":16.8,"tod":21.9,"orb":37.5,"drb":27.5,"ftr":39.5,"ftrd":17.6,"tp":67.9,"wab":0.04,"p2":51.3,"p2d":35.6,"p3":27.9,"p3d":26.1,"p3r":36.1,"p3rd":38.7,"net":9.8},{"rk":86,"tm":"Akron","cf":"MAC","g":1,"rec":"1-0","ao":110.1,"aor":96,"ad":100.3,"adr":82,"bt":0.7451,"efg":56.0,"efgd":35.7,"to":23.6,"tod":10.3,"orb":37.9,"drb":24.4,"ftr":46.0,"ftrd":34.9,"tp":72.2,"wab":0.13,"p2":61.9,"p2d":25.7,"p3":34.5,"p3d":32.1,"p3r":58.0,"p3rd":44.4,"net":9.8},{"rk":87,"tm":"Oregon St.","cf":"P12","g":2,"rec":"2-0","ao":113.5,"aor":56,"ad":103.5,"adr":127,"bt":0.7424,"efg":60.5,"efgd":41.7,"to":11.6,"tod":14.3,"orb":35.9,"drb":25.0,"ftr":31.6,"ftrd":21.8,"tp":65.3,"wab":0.09,"p2":66.2,"p2d":44.0,"p3":35.6,"p3d":25.9,"p3r":44.4,"p3rd":43.6,"net":10.0},{"rk":88,"tm":"Boise St.","cf":"P12","g":1,"rec":"1-0","ao":109.0,"aor":109,"ad":99.5,"adr":75,"bt":0.7415,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":69.4,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":9.5},{"rk":89,"tm":"Colorado St.","cf":"P12","g":2,"rec":"2-0","ao":111.9,"aor":72,"ad":102.1,"adr":106,"bt":0.7401,"efg":57.9,"efgd":48.4,"to":16.9,"tod":15.5,"orb":24.1,"drb":21.5,"ftr":32.5,"ftrd":26.0,"tp":68.8,"wab":0.18,"p2":62.5,"p2d":47.7,"p3":33.3,"p3d":32.8,"p3r":36.8,"p3rd":47.2,"net":9.8},{"rk":90,"tm":"Tulsa","cf":"Amer","g":2,"rec":"2-0","ao":111.2,"aor":80,"ad":101.5,"adr":101,"bt":0.7399,"efg":61.4,"efgd":52.7,"to":14.7,"tod":8.8,"orb":38.9,"drb":12.5,"ftr":59.6,"ftrd":33.9,"tp":71.1,"wab":0.04,"p2":60.9,"p2d":48.1,"p3":41.2,"p3d":37.9,"p3r":59.6,"p3rd":51.8,"net":9.7},{"rk":91,"tm":"Pittsburgh","cf":"ACC","g":2,"rec":"2-0","ao":109.9,"aor":97,"ad":100.4,"adr":86,"bt":0.7387,"efg":51.7,"efgd":40.7,"to":14.4,"tod":23.3,"orb":39.5,"drb":19.2,"ftr":61.3,"ftrd":38.9,"tp":69.7,"wab":0.06,"p2":47.1,"p2d":38.5,"p3":38.8,"p3d":28.6,"p3r":41.2,"p3rd":51.9,"net":9.5},{"rk":92,"tm":"Wake Forest","cf":"ACC","g":2,"rec":"1-1","ao":108.0,"aor":121,"ad":98.7,"adr":61,"bt":0.7385,"efg":50.0,"efgd":45.5,"to":16.8,"tod":18.2,"orb":23.1,"drb":38.3,"ftr":35.1,"ftrd":17.4,"tp":71.1,"wab":-0.21,"p2":58.1,"p2d":40.2,"p3":26.5,"p3d":36.0,"p3r":44.1,"p3rd":37.9,"net":9.3},{"rk":93,"tm":"Stanford","cf":"ACC","g":2,"rec":"2-0","ao":108.6,"aor":114,"ad":99.2,"adr":71,"bt":0.7377,"efg":56.6,"efgd":47.1,"to":17.2,"tod":20.1,"orb":27.6,"drb":29.2,"ftr":28.3,"ftrd":44.7,"tp":70.0,"wab":0.13,"p2":65.2,"p2d":53.5,"p3":29.8,"p3d":21.9,"p3r":41.6,"p3rd":31.1,"net":9.4},{"rk":94,"tm":"Kansas St.","cf":"B12","g":2,"rec":"1-1","ao":110.9,"aor":85,"ad":101.4,"adr":100,"bt":0.7361,"efg":56.5,"efgd":48.0,"to":19.5,"tod":18.2,"orb":24.2,"drb":29.1,"ftr":37.1,"ftrd":31.5,"tp":73.5,"wab":-0.9,"p2":59.6,"p2d":45.9,"p3":36.2,"p3d":34.0,"p3r":59.5,"p3rd":40.3,"net":9.5},{"rk":95,"tm":"South Carolina","cf":"SEC","g":1,"rec":"1-0","ao":110.2,"aor":94,"ad":100.9,"adr":95,"bt":0.734,"efg":57.4,"efgd":50.0,"to":8.5,"tod":22.0,"orb":51.7,"drb":25.9,"ftr":26.2,"ftrd":45.5,"tp":68.3,"wab":0.03,"p2":67.6,"p2d":46.4,"p3":29.6,"p3d":37.5,"p3r":44.3,"p3rd":36.4,"net":9.3},{"rk":96,"tm":"Miami OH","cf":"MAC","g":1,"rec":"1-0","ao":111.6,"aor":78,"ad":102.6,"adr":110,"bt":0.7231,"efg":51.5,"efgd":48.6,"to":14.9,"tod":16.3,"orb":36.1,"drb":34.0,"ftr":25.0,"ftrd":22.9,"tp":72.6,"wab":0.28,"p2":52.3,"p2d":36.1,"p3":33.3,"p3d":41.2,"p3r":35.3,"p3rd":48.6,"net":9.0},{"rk":97,"tm":"California","cf":"ACC","g":2,"rec":"2-0","ao":109.1,"aor":108,"ad":100.4,"adr":85,"bt":0.7228,"efg":63.6,"efgd":46.9,"to":19.3,"tod":18.0,"orb":21.9,"drb":31.7,"ftr":23.7,"ftrd":23.1,"tp":71.3,"wab":0.03,"p2":50.0,"p2d":55.6,"p3":48.6,"p3d":24.1,"p3r":59.3,"p3rd":44.6,"net":8.7},{"rk":98,"tm":"South Florida","cf":"Amer","g":2,"rec":"1-1","ao":111.4,"aor":79,"ad":102.7,"adr":111,"bt":0.7183,"efg":56.0,"efgd":50.4,"to":9.7,"tod":18.0,"orb":31.9,"drb":31.6,"ftr":27.6,"ftrd":30.2,"tp":72.4,"wab":-0.4,"p2":54.5,"p2d":49.3,"p3":39.1,"p3d":34.5,"p3r":34.3,"p3rd":43.7,"net":8.7},{"rk":99,"tm":"Illinois Chicago","cf":"MVC","g":2,"rec":"2-0","ao":109.4,"aor":103,"ad":101.1,"adr":98,"bt":0.7109,"efg":55.8,"efgd":47.9,"to":17.1,"tod":28.5,"orb":31.0,"drb":24.1,"ftr":35.0,"ftrd":27.1,"tp":70.8,"wab":0.06,"p2":51.3,"p2d":45.8,"p3":42.9,"p3d":33.3,"p3r":35.0,"p3rd":50.0,"net":8.3},{"rk":100,"tm":"Murray St.","cf":"MVC","g":1,"rec":"1-0","ao":110.8,"aor":89,"ad":103.2,"adr":120,"bt":0.6923,"efg":56.5,"efgd":35.5,"to":20.2,"tod":30.9,"orb":30.0,"drb":31.7,"ftr":46.8,"ftrd":63.6,"tp":74.7,"wab":0.12,"p2":61.9,"p2d":36.4,"p3":30.0,"p3d":22.7,"p3r":32.3,"p3rd":40.0,"net":7.6},{"rk":101,"tm":"UC Santa Barbara","cf":"BW","g":1,"rec":"1-0","ao":110.8,"aor":86,"ad":103.4,"adr":124,"bt":0.6893,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":68.7,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":7.4},{"rk":102,"tm":"UNLV","cf":"MWC","g":1,"rec":"1-0","ao":111.2,"aor":81,"ad":103.8,"adr":133,"bt":0.6884,"efg":54.1,"efgd":63.5,"to":14.5,"tod":26.2,"orb":50.0,"drb":29.6,"ftr":52.5,"ftrd":50.0,"tp":71.9,"wab":0.02,"p2":52.5,"p2d":56.0,"p3":38.1,"p3d":47.8,"p3r":34.4,"p3rd":47.9,"net":7.4},{"rk":103,"tm":"Memphis","cf":"Amer","g":1,"rec":"1-0","ao":111.9,"aor":71,"ad":104.5,"adr":148,"bt":0.6869,"efg":50.0,"efgd":46.6,"to":18.3,"tod":15.5,"orb":35.3,"drb":35.0,"ftr":60.0,"ftrd":55.2,"tp":73.4,"wab":0.7,"p2":40.0,"p2d":55.3,"p3":45.0,"p3d":20.0,"p3r":36.4,"p3rd":34.5,"net":7.4},{"rk":104,"tm":"Charlotte","cf":"Amer","g":2,"rec":"2-0","ao":111.1,"aor":82,"ad":103.8,"adr":136,"bt":0.6865,"efg":57.8,"efgd":49.6,"to":19.7,"tod":15.1,"orb":35.5,"drb":26.4,"ftr":36.7,"ftrd":30.4,"tp":69.2,"wab":0.2,"p2":54.5,"p2d":48.6,"p3":41.9,"p3d":34.1,"p3r":39.4,"p3rd":35.7,"net":7.3},{"rk":105,"tm":"Boston College","cf":"ACC","g":2,"rec":"2-0","ao":110.2,"aor":93,"ad":103.0,"adr":115,"bt":0.6853,"efg":47.3,"efgd":38.2,"to":12.2,"tod":22.0,"orb":36.4,"drb":39.2,"ftr":46.4,"ftrd":28.2,"tp":60.0,"wab":0.15,"p2":56.1,"p2d":39.0,"p3":22.7,"p3d":24.2,"p3r":40.0,"p3rd":30.0,"net":7.2},{"rk":106,"tm":"Illinois St.","cf":"MVC","g":2,"rec":"1-1","ao":109.7,"aor":99,"ad":102.8,"adr":112,"bt":0.6794,"efg":59.5,"efgd":52.9,"to":23.6,"tod":14.4,"orb":28.6,"drb":41.0,"ftr":39.7,"ftrd":38.2,"tp":69.3,"wab":-0.39,"p2":48.4,"p2d":58.8,"p3":48.1,"p3d":23.5,"p3r":46.6,"p3rd":25.0,"net":6.9},{"rk":107,"tm":"Utah","cf":"B12","g":2,"rec":"2-0","ao":106.7,"aor":133,"ad":100.3,"adr":83,"bt":0.6709,"efg":55.3,"efgd":46.8,"to":25.1,"tod":17.5,"orb":29.8,"drb":22.7,"ftr":45.3,"ftrd":31.2,"tp":69.8,"wab":0.11,"p2":60.0,"p2d":42.2,"p3":32.5,"p3d":35.6,"p3r":42.1,"p3rd":41.3,"net":6.4},{"rk":108,"tm":"Davidson","cf":"A10","g":1,"rec":"1-0","ao":108.6,"aor":113,"ad":102.4,"adr":109,"bt":0.6611,"efg":66.0,"efgd":39.0,"to":21.1,"tod":13.5,"orb":25.0,"drb":32.6,"ftr":22.6,"ftrd":16.2,"tp":68.2,"wab":0.2,"p2":56.7,"p2d":43.2,"p3":52.2,"p3d":20.8,"p3r":43.4,"p3rd":35.3,"net":6.2},{"rk":109,"tm":"UC Irvine","cf":"BW","g":1,"rec":"1-0","ao":103.8,"aor":194,"ad":98.0,"adr":47,"bt":0.6594,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":71.7,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":5.8},{"rk":110,"tm":"UNC Wilmington","cf":"CAA","g":1,"rec":"1-0","ao":110.8,"aor":88,"ad":104.7,"adr":151,"bt":0.6569,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":68.7,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":6.1},{"rk":111,"tm":"Richmond","cf":"A10","g":2,"rec":"2-0","ao":109.9,"aor":98,"ad":103.9,"adr":139,"bt":0.6563,"efg":69.7,"efgd":52.3,"to":18.1,"tod":23.2,"orb":31.0,"drb":31.4,"ftr":34.4,"ftrd":26.6,"tp":70.6,"wab":0.03,"p2":63.9,"p2d":60.5,"p3":52.0,"p3d":23.8,"p3r":41.0,"p3rd":32.8,"net":6.0},{"rk":112,"tm":"Georgia Tech","cf":"ACC","g":2,"rec":"2-0","ao":108.9,"aor":111,"ad":103.3,"adr":121,"bt":0.6469,"efg":51.3,"efgd":38.8,"to":21.5,"tod":15.0,"orb":38.9,"drb":34.3,"ftr":62.1,"ftrd":46.3,"tp":71.9,"wab":0.08,"p2":57.1,"p2d":39.7,"p3":28.3,"p3d":25.0,"p3r":39.7,"p3rd":41.8,"net":5.6},{"rk":113,"tm":"Western Kentucky","cf":"CUSA","g":2,"rec":"2-0","ao":108.2,"aor":119,"ad":102.8,"adr":113,"bt":0.6427,"efg":50.7,"efgd":42.2,"to":8.8,"tod":19.0,"orb":33.3,"drb":23.1,"ftr":21.7,"ftrd":20.7,"tp":72.2,"wab":0.02,"p2":48.8,"p2d":53.8,"p3":35.7,"p3d":21.9,"p3r":40.6,"p3rd":55.2,"net":5.4},{"rk":114,"tm":"Wyoming","cf":"MWC","g":2,"rec":"2-0","ao":109.0,"aor":110,"ad":103.6,"adr":129,"bt":0.6423,"efg":56.2,"efgd":36.2,"to":20.0,"tod":20.0,"orb":63.6,"drb":34.1,"ftr":43.8,"ftrd":46.6,"tp":70.1,"wab":0.02,"p2":58.5,"p2d":31.6,"p3":34.8,"p3d":30.0,"p3r":35.9,"p3rd":34.5,"net":5.4},{"rk":115,"tm":"North Texas","cf":"Amer","g":2,"rec":"2-0","ao":105.3,"aor":161,"ad":100.3,"adr":84,"bt":0.6351,"efg":52.7,"efgd":45.5,"to":18.3,"tod":22.8,"orb":41.9,"drb":36.8,"ftr":39.3,"ftrd":38.2,"tp":69.2,"wab":0.24,"p2":65.5,"p2d":37.0,"p3":25.9,"p3d":35.7,"p3r":48.2,"p3rd":50.9,"net":5.0},{"rk":116,"tm":"Penn St.","cf":"B10","g":2,"rec":"2-0","ao":110.7,"aor":91,"ad":105.6,"adr":176,"bt":0.6312,"efg":55.1,"efgd":51.6,"to":15.5,"tod":18.9,"orb":45.3,"drb":29.1,"ftr":66.1,"ftrd":25.2,"tp":72.8,"wab":0.06,"p2":65.8,"p2d":57.3,"p3":23.8,"p3d":28.8,"p3r":35.6,"p3rd":40.9,"net":5.1},{"rk":117,"tm":"Northern Iowa","cf":"MVC","g":1,"rec":"1-0","ao":106.5,"aor":140,"ad":101.9,"adr":102,"bt":0.6261,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":69.2,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":4.6},{"rk":118,"tm":"Belmont","cf":"MVC","g":2,"rec":"2-0","ao":107.7,"aor":125,"ad":103.0,"adr":114,"bt":0.625,"efg":57.7,"efgd":36.1,"to":26.0,"tod":26.0,"orb":21.9,"drb":35.6,"ftr":36.5,"ftrd":31.1,"tp":74.3,"wab":0.02,"p2":65.6,"p2d":40.0,"p3":30.0,"p3d":19.0,"p3r":38.5,"p3rd":34.4,"net":4.7},{"rk":119,"tm":"Texas St.","cf":"P12","g":2,"rec":"2-0","ao":109.1,"aor":107,"ad":104.4,"adr":147,"bt":0.6238,"efg":53.1,"efgd":44.1,"to":19.1,"tod":23.9,"orb":32.0,"drb":35.7,"ftr":42.9,"ftrd":27.5,"tp":69.2,"wab":0.06,"p2":55.6,"p2d":52.9,"p3":30.8,"p3d":17.6,"p3r":26.5,"p3rd":33.3,"net":4.7},{"rk":120,"tm":"UC San Diego","cf":"BW","g":1,"rec":"1-0","ao":106.5,"aor":143,"ad":101.9,"adr":103,"bt":0.6219,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":70.6,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":4.6},{"rk":121,"tm":"Temple","cf":"Amer","g":1,"rec":"1-0","ao":108.9,"aor":112,"ad":104.7,"adr":153,"bt":0.61,"efg":52.5,"efgd":41.7,"to":14.9,"tod":17.9,"orb":24.2,"drb":24.4,"ftr":16.9,"ftrd":21.7,"tp":70.0,"wab":0.01,"p2":65.5,"p2d":33.3,"p3":26.7,"p3d":38.1,"p3r":50.8,"p3rd":35.0,"net":4.2},{"rk":122,"tm":"Wright St.","cf":"Horz","g":2,"rec":"2-0","ao":109.2,"aor":105,"ad":105.2,"adr":163,"bt":0.6067,"efg":65.2,"efgd":42.2,"to":16.6,"tod":18.7,"orb":45.3,"drb":37.1,"ftr":39.3,"ftrd":47.5,"tp":70.6,"wab":0.14,"p2":68.4,"p2d":37.7,"p3":39.5,"p3d":33.3,"p3r":35.2,"p3rd":36.9,"net":4.0},{"rk":123,"tm":"Utah Valley","cf":"BW","g":1,"rec":"1-0","ao":106.1,"aor":149,"ad":102.4,"adr":108,"bt":0.6009,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":71.5,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":3.7},{"rk":124,"tm":"Harvard","cf":"Ivy","g":1,"rec":"1-0","ao":106.0,"aor":151,"ad":102.3,"adr":107,"bt":0.6008,"efg":0.0,"efgd":200.0,"to":100.0,"tod":0.0,"orb":0.0,"drb":100.0,"ftr":0.0,"ftrd":200.0,"tp":68.3,"wab":0.0,"p2":0.0,"p2d":100.0,"p3":0.0,"p3d":100.0,"p3r":0.0,"p3rd":100.0,"net":3.7},{"rk":125,"tm":"Penn","cf":"Ivy","g":1,"rec":"0-1","ao":106.9,"aor":131,"ad":103.3,"adr":122,"bt":0.5982,"efg":34.9,"efgd":65.8,"to":10.3,"tod":21.8,"orb":25.4,"drb":46.9,"ftr":17.4,"ftrd":31.5,"tp":73.5,"wab":-0.13,"p2":29.4,"p2d":71.7,"p3":28.6,"p3d":37.0,"p3r":40.7,"p3rd":37.0,"net":3.6}],"avg":{"adj_o":105.2,"efg_pct":50.3,"to_pct":18.3,"orb_pct":31.9,"ftr":37.0,"p2_pct":51.7,"p3_pct":32.2,"p3r":41.8,"adj_tempo":71.1},"date":"2026-11-07","season":"2027"};
+var TEAMS = DATA.teams, AVG = DATA.avg;
+
+/* ---------- percentile grading within the top 125 ---------- */
+function pctRank(key, val, lowerBetter){
+  var n = TEAMS.length, below = 0;
+  for (var i=0;i<n;i++){ if (TEAMS[i][key] < val) below++; }
+  var p = below/(n-1);
+  return lowerBetter ? 1-p : p;
+}
+function grade(key, val, lowerBetter){
+  var p = pctRank(key, val, lowerBetter);
+  if (p >= 0.85) return "t5";
+  if (p >= 0.65) return "t4";
+  if (p <= 0.15) return "t1";
+  if (p <= 0.35) return "t2";
+  return "";
+}
+function f1(x){ return (Math.round(x*10)/10).toFixed(1); }
+function sgn(x){ return (x>0?"+":"") + f1(x); }
+
+/* ---------- views ---------- */
+var VIEWS = {
+  eff: [
+    {k:"rk",  h:"Rk", cls:"l"},
+    {k:"tm",  h:"Team", cls:"l"},
+    {k:"cf",  h:"Conf", cls:"l hide-m"},
+    {k:"rec", h:"Rec", cls:"hide-m"},
+    {k:"ao",  h:"AdjO", g:0, sub:"aor"},
+    {k:"ad",  h:"AdjD", g:1, sub:"adr"},
+    {k:"net", h:"Net", cls:"hide-m", fmt:"net"},
+    {k:"bt",  h:"Barthag", fmt:"bt"},
+    {k:"tp",  h:"Tempo", cls:"hide-m"},
+    {k:"wab", h:"WAB", cls:"hide-m", fmt:"wab"}
+  ],
+  ff: [
+    {k:"rk", h:"Rk", cls:"l"}, {k:"tm", h:"Team", cls:"l"},
+    {k:"efg",  h:"eFG%", g:0}, {k:"efgd", h:"eFG D%", g:1},
+    {k:"to",   h:"TO%", g:1},  {k:"tod",  h:"TO D%", g:0},
+    {k:"orb",  h:"ORB%", g:0}, {k:"drb",  h:"DRB%", g:1, cls:"hide-m"},
+    {k:"ftr",  h:"FTR", g:0},  {k:"ftrd", h:"FTR D", g:1, cls:"hide-m"}
+  ],
+  shot: [
+    {k:"rk", h:"Rk", cls:"l"}, {k:"tm", h:"Team", cls:"l"},
+    {k:"p2",  h:"2P%", g:0},  {k:"p2d", h:"2P D%", g:1},
+    {k:"p3",  h:"3P%", g:0},  {k:"p3d", h:"3P D%", g:1},
+    {k:"p3r", h:"3P Rate", g:0}, {k:"p3rd", h:"3PR D", g:1, cls:"hide-m"}
+  ]
+};
+var state = { view:"eff", sort:"rk", dir:1, conf:"", q:"" };
+
+function cellVal(t, col){
+  var v = t[col.k];
+  if (col.fmt === "bt") return v.toFixed(3).replace(/^0/,"");
+  if (col.fmt === "net") return sgn(v);
+  if (col.fmt === "wab") return sgn(v);
+  if (typeof v === "number" && v % 1 !== 0) return f1(v);
+  return v;
+}
+function render(){
+  var cols = VIEWS[state.view];
+  var head = document.getElementById("ratingsHead");
+  var hr = "<tr>";
+  cols.forEach(function(c){
+    var dir = state.sort === c.k ? (state.dir === 1 ? " \u25B2" : " \u25BC") : "";
+    hr += '<th scope="col" class="'+(c.cls||"")+'" data-k="'+c.k+'">'+c.h+
+          '<span class="dir">'+dir+'</span></th>';
+  });
+  head.innerHTML = hr + "</tr>";
+  head.querySelectorAll("th").forEach(function(th){
+    th.addEventListener("click", function(){
+      var k = th.getAttribute("data-k");
+      if (state.sort === k) state.dir *= -1;
+      else { state.sort = k; state.dir = (k==="tm"||k==="cf") ? 1 : -1; if(k==="rk") state.dir=1; }
+      render();
+    });
+  });
+  var rows = TEAMS.filter(function(t){
+    if (state.conf && t.cf !== state.conf) return false;
+    if (state.q && t.tm.toLowerCase().indexOf(state.q) === -1) return false;
+    return true;
+  });
+  rows.sort(function(a,b){
+    var x = a[state.sort], y = b[state.sort];
+    if (typeof x === "string") return state.dir * x.localeCompare(y);
+    return state.dir * (x - y);
+  });
+  var body = document.getElementById("ratingsBody");
+  var html = "";
+  rows.forEach(function(t){
+    html += "<tr>";
+    cols.forEach(function(c){
+      var cls = c.cls || "";
+      var content = cellVal(t, c);
+      if (c.k === "tm") cls += " team l";
+      if (c.k === "rk") cls += " rk";
+      if (c.sub) content += '<span class="sub">#'+t[c.sub]+"</span>";
+      if (c.g !== undefined) cls += " " + grade(c.k, t[c.k], c.g === 1);
+      if (c.fmt === "net" || c.fmt === "wab")
+        cls += " " + (t[c.k] > 0 ? "pos" : (t[c.k] < 0 ? "neg" : ""));
+      html += '<td class="'+cls.trim()+'">'+content+"</td>";
+    });
+    html += "</tr>";
+  });
+  body.innerHTML = html || '<tr><td class="l" colspan="'+cols.length+'">No teams match that filter.</td></tr>';
+  document.getElementById("countLine").textContent =
+    "Showing " + rows.length + " of 125 teams";
+}
+
+/* view + filter wiring */
+document.querySelectorAll("[data-view]").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll("[data-view]").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+    b.setAttribute("aria-pressed","true");
+    state.view = b.getAttribute("data-view");
+    state.sort = "rk"; state.dir = 1;
+    render();
+  });
+});
+var confs = [];
+TEAMS.forEach(function(t){ if (confs.indexOf(t.cf) === -1) confs.push(t.cf); });
+confs.sort();
+var confSel = document.getElementById("confFilter");
+confs.forEach(function(c){
+  var o = document.createElement("option"); o.value = c; o.textContent = c; confSel.appendChild(o);
+});
+confSel.addEventListener("change", function(){ state.conf = confSel.value; render(); });
+document.getElementById("teamSearch").addEventListener("input", function(e){
+  state.q = e.target.value.trim().toLowerCase(); render();
+});
+
+/* ---------- leaders strip ---------- */
+function best(key, lowerBetter){
+  var b = TEAMS[0];
+  TEAMS.forEach(function(t){
+    if (lowerBetter ? t[key] < b[key] : t[key] > b[key]) b = t;
+  });
+  return b;
+}
+var L = [
+  ["Best Offense (AdjO)", best("ao", false), "ao"],
+  ["Best Defense (AdjD)", best("ad", true), "ad"],
+  ["Fastest Tempo", best("tp", false), "tp"],
+  ["Slowest Tempo", best("tp", true), "tp"],
+  ["Best Barthag", best("bt", false), "bt"]
+];
+document.getElementById("leaders").innerHTML =
+  '<span class="leaders-label">Team leaders</span>' + L.map(function(x){
+  var v = x[2] === "bt" ? x[1].bt.toFixed(3).replace(/^0/,"") : f1(x[1][x[2]]);
+  return '<span class="leader-chip">'+x[0]+': <b>#'+x[1].rk+" "+x[1].tm+" "+v+"</b></span>";
+}).join("");
+
+/* ---------- matchup projector ---------- */
+var selA = document.getElementById("teamA"), selB = document.getElementById("teamB");
+TEAMS.forEach(function(t){
+  [selA, selB].forEach(function(s){
+    var o = document.createElement("option");
+    o.value = t.rk; o.textContent = "#"+t.rk+" "+t.tm+" ("+t.cf+")";
+    s.appendChild(o);
+  });
+});
+selA.value = "1"; selB.value = "2";
+var loc = "N";
+document.querySelectorAll("[data-loc]").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll("[data-loc]").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+    b.setAttribute("aria-pressed","true");
+    loc = b.getAttribute("data-loc");
+    project();
+  });
+});
+function normCdf(z){
+  var t = 1/(1 + 0.2316419*Math.abs(z));
+  var d = 0.3989423*Math.exp(-z*z/2);
+  var p = d*t*(0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
+  return z > 0 ? 1-p : p;
+}
+var HOME_PTS = 3.0; /* typical CBB home-court edge, points */
+/* ---------- Four Factors matchup adjustment ----------
+   AdjO/AdjD already price in each team's season-average Four Factors
+   performance against an average opponent. What they miss is the specific
+   matchup: how this offense's factor rates interact with this defense's.
+   For each factor, the expected rate in this game is the offense's rate
+   scaled by the defense's rate relative to the D1 average
+   (off x def / avg, the same form as the base efficiency projection).
+   Only the gap between that expected rate and the offense's own season
+   rate moves the projection:
+     turnovers  - expected TO% below its norm means fewer empty trips
+     rebounding - expected ORB% above its norm means more second chances
+     free throws- expected FTR above its norm means more trips to the line
+   Each gap is converted to points per 100 possessions (a turnover avoided
+   is worth ~0.95 pts of shot opportunity, an extra offensive rebound
+   ~0.85 pts of second-chance value, a point of FTR ~0.28 pts of free
+   throws), then shrunk toward zero and capped per factor: with 1-2 games
+   played the factor rates are noisy, and no single factor should swamp
+   the efficiency projection. */
+var FF_SHRINK = 0.4;
+function ffClamp(x, cap){ return Math.max(-cap, Math.min(cap, x)); }
+function ffAdj(off, def){
+  var expTO  = off.to  * def.tod  / AVG.to_pct;
+  var expORB = off.orb * def.drb  / AVG.orb_pct;
+  var expFTR = off.ftr * def.ftrd / AVG.ftr;
+  return {
+    to:  ffClamp((off.to - expTO)   * 0.95 * FF_SHRINK, 2.5),
+    orb: ffClamp((expORB - off.orb) * 0.85 * FF_SHRINK, 2.5),
+    ftr: ffClamp((expFTR - off.ftr) * 0.28 * FF_SHRINK, 2.0)
+  };
+}
+function ffTotal(f){ return f.to + f.orb + f.ftr; }
+function project(){
+  var A = TEAMS[+selA.value - 1], B = TEAMS[+selB.value - 1];
+  if (!A || !B) return;
+  var poss = A.tp * B.tp / AVG.adj_tempo;
+  var baseA = poss * (A.ao * B.ad / AVG.adj_o) / 100;
+  var baseB = poss * (B.ao * A.ad / AVG.adj_o) / 100;
+  var ffA = ffAdj(A, B), ffB = ffAdj(B, A);
+  var ffPtsA = ffTotal(ffA) * poss / 100;
+  var ffPtsB = ffTotal(ffB) * poss / 100;
+  var ptsA = baseA + ffPtsA;
+  var ptsB = baseB + ffPtsB;
+  if (loc === "A") ptsA += HOME_PTS;
+  if (loc === "B") ptsB += HOME_PTS;
+  var margin = ptsA - ptsB;
+  var wpA = normCdf(margin / 11); /* ~11 pt SD of CBB margin vs projection */
+  var out = document.getElementById("projOut");
+  out.classList.add("show");
+  var aWin = margin >= 0;
+  document.getElementById("scoreLine").innerHTML =
+    '<span class="score-team'+(aWin?" win":"")+'">'+A.tm+' <span class="pts">'+Math.round(ptsA)+"</span></span>"+
+    '<span class="score-team'+(!aWin?" win":"")+'">'+B.tm+' <span class="pts">'+Math.round(ptsB)+"</span></span>";
+  document.getElementById("wpA").style.width = (wpA*100)+"%";
+  document.getElementById("wpB").style.width = ((1-wpA)*100)+"%";
+  document.getElementById("wpLabA").textContent = A.tm+" win prob "+Math.round(wpA*100)+"%";
+  document.getElementById("wpLabB").textContent = B.tm+" win prob "+Math.round((1-wpA)*100)+"%";
+  var fav = aWin ? A : B, dog = aWin ? B : A;
+  document.getElementById("projMeta").innerHTML =
+    "<span>Projected spread: <strong>"+fav.tm+" -"+f1(Math.abs(margin))+"</strong></span>"+
+    "<span>Projected total: <strong>"+Math.round(ptsA+ptsB)+"</strong></span>"+
+    "<span>Pace: <strong>"+f1(poss)+" possessions</strong></span>"+
+    "<span>Site: <strong>"+(loc==="N" ? "Neutral" : (loc==="A" ? A.tm+" home" : B.tm+" home"))+"</strong></span>";
+  /* Four Factors breakdown: net edge per factor, in game points.
+     A positive net means the factor matchup moves the margin toward A. */
+  function ffRow(label, net, ctx){
+    var edge;
+    if (Math.abs(net) < 0.05) edge = "Even";
+    else {
+      var t = net > 0 ? A : B;
+      edge = t.tm+" +"+f1(Math.abs(net))+" pts";
+    }
+    return '<div class="ff-row"><span class="ff-k">'+label+'</span>'+
+      '<span class="ff-v">'+edge+'</span>'+
+      '<span class="ff-ctx">'+ctx+"</span></div>";
+  }
+  var per = poss / 100;
+  document.getElementById("ffRows").innerHTML =
+    ffRow("Turnover edge", (ffA.to - ffB.to) * per,
+      A.tm+" gives it away "+f1(A.to)+"% vs "+B.tm+" forcing "+f1(B.tod)+"% \u00B7 "+
+      B.tm+" "+f1(B.to)+"% vs "+A.tm+" forcing "+f1(A.tod)+"%") +
+    ffRow("Rebounding edge", (ffA.orb - ffB.orb) * per,
+      A.tm+" grabs "+f1(A.orb)+"% of its misses vs "+B.tm+" allowing "+f1(B.drb)+"% \u00B7 "+
+      B.tm+" "+f1(B.orb)+"% vs "+A.tm+" allowing "+f1(A.drb)+"%") +
+    ffRow("Free-throw edge", (ffA.ftr - ffB.ftr) * per,
+      A.tm+" FTR "+f1(A.ftr)+" vs "+B.tm+" allowing "+f1(B.ftrd)+" \u00B7 "+
+      B.tm+" FTR "+f1(B.ftr)+" vs "+A.tm+" allowing "+f1(A.ftrd));
+  document.getElementById("ffNote").innerHTML =
+    "Versus the base efficiency projection, the Four Factors matchup moves "+
+    "<strong>"+A.tm+" "+sgn(ffPtsA)+" pts</strong> and "+
+    "<strong>"+B.tm+" "+sgn(ffPtsB)+" pts</strong>. Adjustments compare each "+
+    "offense's expected factor rates against this defense with its season rates, "+
+    "and are shrunk and capped so one factor can't swamp the projection.";
+}
+selA.addEventListener("change", project);
+selB.addEventListener("change", project);
+project();
+
+/* ---------- kelly / EV calculator ---------- */
+var kProb = document.getElementById("kProb"),
+    kOdds = document.getElementById("kOdds"),
+    kBank = document.getElementById("kBank");
+function money(x){ return "$" + x.toFixed(2); }
+function kelly(){
+  var pPct = parseFloat(kProb.value), odds = parseFloat(kOdds.value),
+      bank = parseFloat(kBank.value);
+  var msg = document.getElementById("kMsg");
+  var evEl = document.getElementById("kEv"), edgeEl = document.getElementById("kEdge");
+  function setRows(pctTxt, amtTxt){
+    document.getElementById("kFullPct").textContent = pctTxt;
+    document.getElementById("kHalfPct").textContent = pctTxt;
+    document.getElementById("kQtrPct").textContent = pctTxt;
+    document.getElementById("kFullAmt").textContent = amtTxt;
+    document.getElementById("kHalfAmt").textContent = amtTxt;
+    document.getElementById("kQtrAmt").textContent = amtTxt;
+  }
+  var validProb = isFinite(pPct) && pPct > 0 && pPct < 100;
+  var validOdds = isFinite(odds) && (odds >= 100 || odds <= -100);
+  if (!validProb || !validOdds){
+    evEl.textContent = "$0.00"; evEl.className = "ev-big";
+    edgeEl.textContent = "";
+    setRows("\u2014", "\u2014");
+    msg.hidden = false;
+    msg.textContent = "Enter a win probability between 1% and 99% and American odds of +100 or longer, or \u2212100 or shorter (e.g. \u2212110, +150).";
+    return;
+  }
+  var p = pPct / 100, q = 1 - p;
+  var b = odds > 0 ? odds / 100 : 100 / Math.abs(odds); /* profit per $1 staked */
+  var implied = odds > 0 ? 100 / (odds + 100) : Math.abs(odds) / (Math.abs(odds) + 100);
+  var ev = p * b - q; /* expected profit per $1 staked */
+  var f = (b * p - q) / b; /* full Kelly fraction of bankroll */
+  evEl.textContent = (ev >= 0 ? "+" : "\u2212") + "$" + Math.abs(ev).toFixed(2) +
+    " (" + (ev >= 0 ? "+" : "\u2212") + Math.abs(ev * 100).toFixed(1) + "%)";
+  evEl.className = "ev-big " + (ev > 0 ? "pos" : (ev < 0 ? "neg" : ""));
+  edgeEl.textContent = "Model " + f1(p * 100) + "% vs " + f1(implied * 100) +
+    "% implied by the odds";
+  if (f <= 0){
+    setRows("0.0%", "$0.00");
+    msg.hidden = false;
+    msg.textContent = "No edge at this price \u2014 the expected value is " +
+      (ev < 0 ? "negative" : "zero") + ", so Kelly says don't bet. The model needs a " +
+      "win probability above " + f1(implied * 100) + "% for this price to be worth staking.";
+    return;
+  }
+  msg.hidden = true;
+  var hasBank = isFinite(bank) && bank > 0;
+  function fill(frac, pctId, amtId){
+    document.getElementById(pctId).textContent = f1(frac * 100) + "%";
+    document.getElementById(amtId).textContent = hasBank ? money(bank * frac) : "\u2014";
+  }
+  fill(f, "kFullPct", "kFullAmt");
+  fill(f / 2, "kHalfPct", "kHalfAmt");
+  fill(f / 4, "kQtrPct", "kQtrAmt");
+}
+[kProb, kOdds, kBank].forEach(function(el){
+  el.addEventListener("input", kelly);
+  el.addEventListener("change", kelly);
+});
+kelly();
+render();
+</script>
+</body>
+</html>

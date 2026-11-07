@@ -693,6 +693,12 @@ PAGE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sportsbook Tracker">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
 <title>NHL + NFL Matchup Chart — {date}</title>
 <style>
 :root {{ --bg: #fafafa; --card: #ffffff; --text: #171717; --muted: #737373; --border: #e5e5e5; --accent: #2f5fd0; --defense: #64748b; --chip: #f0f0f0; --chip-text: #404040; }}
@@ -785,10 +791,23 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
   .bar-label {{ width: 84px; font-size: 12px; }}
   .bar-value {{ width: 76px; font-size: 12px; }}
 }}
+.topnav {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }}
+.brand {{ font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }}
+.brand span {{ color: var(--accent); }}
+.nav-links {{ display: flex; gap: 6px; }}
+.nav-link {{ padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; }}
+.nav-link.active {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
 </style>
 </head>
 <body>
 <main>
+<nav class="topnav" aria-label="Sports">
+  <a class="brand" href="index.html">Sportsbook <span>Tracker</span></a>
+  <div class="nav-links">
+    <a class="nav-link active" href="index.html" aria-current="page">NHL</a>
+    <a class="nav-link" href="cbb/index.html">CBB</a>
+  </div>
+</nav>
 <h1>NHL + NFL Matchup Chart</h1>
 <p class="subtitle">{date} &middot; NHL today, NFL this week &middot; rebuilt every morning</p>
 {tabs}

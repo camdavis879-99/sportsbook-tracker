@@ -703,7 +703,7 @@ def main():
 
     date_label = today.strftime("%A, %B %-d")
     lines = [f"NHL today — {date_label} ({len(games)} games)",
-             "Tracker: https://camdavis879-99.github.io/nhl-matchup-chart/"]
+             "Tracker: https://camdavis879-99.github.io/sportsbook-tracker/"]
     chart_games = []
     for dt, g in games:
         away = g.get("awayTeam", {})
