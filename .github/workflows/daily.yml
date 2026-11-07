@@ -31,8 +31,10 @@ jobs:
         run: python3 enrich.py today.json $(TZ=America/Phoenix date +%F)
       - name: Fetch NFL week
         run: python3 nfl.py nfl.json
+      - name: Fetch season stats (Season Stats tab)
+        run: python3 season_stats.py season_stats.json $(TZ=America/Phoenix date +%F)
       - name: Render the page
-        run: python3 render.py today.json dist/index.html
+        run: python3 render.py today.json dist/index.html nfl.json season_stats.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
