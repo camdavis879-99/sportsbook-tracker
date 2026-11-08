@@ -119,14 +119,14 @@ def card(g):
     if analytics:
         items = "".join(f"<div>{html.escape(s)}</div>" for s in analytics)
         parts.append(f'<div class="analytics">{items}</div>')
-    extra = []
     o = g.get("odds")
     if o:
-        extra.append(
+        parts.append(
             f'<div class="odds">FanDuel: {html.escape(a)} {html.escape(o["away_spread"])} &middot; '
             f'{html.escape(h)} {html.escape(o["home_spread"])} &middot; '
             f'O/U {html.escape(o["total"])}</div>'
         )
+    extra = []
     mb = model_block(g)
     if mb:
         extra.append(mb)
