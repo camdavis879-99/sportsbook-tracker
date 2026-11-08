@@ -552,12 +552,13 @@ def _leader_list(items, fmt, start=1):
     return f'<ol class="leader-list"{start_attr}>{"".join(lis)}</ol>'
 
 
-def _leader_cat(title, items, fmt, show_bottom=True):
+def _leader_cat(title, items, fmt, show_bottom=True, tone="off"):
     """One leaderboard category. items is a list of (label, value)
     sorted best-first. Shows ranks 1-6, then the bottom 6 (ranks
     27-32 when there are 32) when show_bottom and there are at
-    least 12 items."""
-    parts = [f'<div class="leader-cat"><h4>{html.escape(title)}</h4>']
+    least 12 items. tone is "off" (amber, offense) or "def" (blue,
+    defense) for the card's accent color."""
+    parts = [f'<div class="leader-cat tone-{tone}"><h4>{html.escape(title)}</h4>']
     parts.append(_leader_list(items[:6], fmt, start=1))
     if show_bottom and len(items) >= 12:
         parts.append('<div class="leader-bottom">Bottom 6</div>')
@@ -594,30 +595,30 @@ def season_section(season):
     # stats show top 6 + bottom 6 (ranks 27-32); skater scoring shows
     # top 6 only, since bottom scoring is not useful for gambling.
     cats = []
-    for key, label, fmt, lower in (
-        ("pp", "Power play %", _pct, False),
-        ("pk", "Penalty kill %", _pct, False),
-        ("gf_gp", "Goals for / game", _f2, False),
-        ("ga_gp", "Goals against / game", _f2, True),
-        ("diff", "Goal differential", _signed, False),
-        ("sv_pct", "Team save %", _sv, False),
-        ("sh_pct", "Shooting %", _pct, False),
-        ("faceoff", "Faceoff %", _pct, False),
+    for key, label, fmt, lower, tone in (
+        ("pp", "Power play %", _pct, False, "off"),
+        ("pk", "Penalty kill %", _pct, False, "def"),
+        ("gf_gp", "Goals for / game", _f2, False, "off"),
+        ("ga_gp", "Goals against / game", _f2, True, "def"),
+        ("diff", "Goal differential", _signed, False, "def"),
+        ("sv_pct", "Team save %", _sv, False, "def"),
+        ("sh_pct", "Shooting %", _pct, False, "off"),
+        ("faceoff", "Faceoff %", _pct, False, "off"),
     ):
         vals = [(t["abbr"], t.get(key)) for t in teams if t.get(key) is not None]
         vals.sort(key=lambda x: x[1], reverse=not lower)
-        cats.append(_leader_cat(label, vals, fmt, show_bottom=True))
+        cats.append(_leader_cat(label, vals, fmt, show_bottom=True, tone=tone))
     ld = season.get("leaders") or {}
     goalies = ld.get("goalies") or []
     if goalies:
         sv_ranked = [(f"{g['name']} ({g['team']})", g["sv"])
                      for g in sorted(goalies, key=lambda g: -g["sv"])]
         cats.append(_leader_cat("Save % — goalies (5+ GP)", sv_ranked, _sv,
-                                show_bottom=True))
+                                show_bottom=True, tone="def"))
         gaa_ranked = [(f"{g['name']} ({g['team']})", g["gaa"])
                       for g in sorted(goalies, key=lambda g: g["gaa"])]
         cats.append(_leader_cat("GAA — goalies (5+ GP)", gaa_ranked, _f2,
-                                show_bottom=True))
+                                show_bottom=True, tone="def"))
     for key, label, fmt in (
         ("points_top", "Points", _int),
         ("goals_top", "Goals", _int),
@@ -626,7 +627,7 @@ def season_section(season):
         top = ld.get(key) or []
         items = [(f"{p['name']} ({p['team']})", p["value"]) for p in top]
         if items:
-            cats.append(_leader_cat(label, items, fmt, show_bottom=False))
+            cats.append(_leader_cat(label, items, fmt, show_bottom=False, tone="off"))
     leaders_board = (
         '<div class="leaders-board"><h3 class="leaders-board-title">Leaders</h3>'
         f'<div class="leaders-grid">{"".join(cats)}</div></div>'
@@ -831,14 +832,17 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .leaders-board-title {{ margin: 0 0 10px; font-size: 15px; }}
 .leaders-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
 @media (max-width: 700px) {{ .leaders-grid {{ grid-template-columns: 1fr; }} }}
-.leader-cat {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }}
-.leader-cat h4 {{ margin: 0 0 8px; font-size: 14px; }}
-.leader-list {{ list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.7; }}
-.leader-list li {{ display: flex; gap: 8px; align-items: baseline; }}
+.leader-cat {{ background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--offense); border-radius: 12px; padding: 10px 12px; }}
+.leader-cat.tone-def {{ border-left-color: var(--defbar); }}
+.leader-cat h4 {{ margin: 0 0 6px; font-size: 14px; }}
+.leader-cat.tone-off h4 {{ color: var(--offense); }}
+.leader-cat.tone-def h4 {{ color: var(--defbar); }}
+.leader-list {{ list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.5; }}
+.leader-list li {{ display: flex; gap: 6px; align-items: baseline; }}
 .leader-list .lr {{ color: var(--muted); width: 18px; text-align: right; flex-shrink: 0; }}
 .leader-list .lname {{ flex: 1; min-width: 0; }}
 .leader-list b {{ flex-shrink: 0; }}
-.leader-bottom {{ margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }}
+.leader-bottom {{ margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }}
 .stats-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px 16px 12px; overflow-x: auto; }}
 .stats-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
 .stats-table th, .stats-table td {{ padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }}
