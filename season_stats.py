@@ -154,14 +154,17 @@ def team_summary(nhl_season):
 
 
 def club_leaders(abbrs):
-    """League-wide individual leaders from club-stats, best effort.
+    """League-wide individual leaderboards from club-stats.
 
-    Fetches each team's skaters/goalies once and returns the points,
-    goals, shots-per-game, save-% and GAA leaders (goalie leaders need
-    >= 5 games played). Any team that fails to fetch is skipped;
-    returns None when nothing usable was fetched.
+    Fetches each team's skaters/goalies once and returns ranked lists:
+    top 6 skaters by points, goals, and shots per game (gp >= 5), plus
+    one starting goalie per team (most games played, gp >= 5) with
+    save % and GAA, so the page can rank all 32 starters. Any team
+    that fails to fetch is skipped; returns None when nothing usable
+    was fetched.
     """
-    best_pts = best_goals = best_sog = best_sv = best_gaa = None
+    skaters = []
+    starter_by_team = {}
     fetched = 0
     for abbr in abbrs:
         data = fetch_json(f"{NHL}/club-stats/{abbr}/now", timeout=15)
@@ -178,15 +181,12 @@ def club_leaders(abbrs):
             shots = _num(s.get("shots"))
             if not name or gp is None or gp <= 0:
                 continue
-            if pts is not None and (best_pts is None or pts > best_pts["value"]):
-                best_pts = {"name": name, "team": abbr, "value": pts,
-                            "detail": f"{goals or 0}G {s.get('assists') or 0}A"}
-            if goals is not None and (best_goals is None or goals > best_goals["value"]):
-                best_goals = {"name": name, "team": abbr, "value": goals, "detail": None}
-            if gp >= 5 and shots is not None:
-                sog = round(shots / gp, 2)
-                if best_sog is None or sog > best_sog["value"]:
-                    best_sog = {"name": name, "team": abbr, "value": sog, "detail": None}
+            skaters.append({
+                "name": name, "team": abbr, "gp": gp,
+                "pts": pts, "goals": goals,
+                "sog_gp": round(shots / gp, 2) if shots is not None else None,
+                "detail": f"{goals or 0}G {s.get('assists') or 0}A",
+            })
         for gl in data.get("goalies", []):
             fn = (gl.get("firstName") or {}).get("default", "")
             ln = (gl.get("lastName") or {}).get("default", "")
@@ -194,20 +194,48 @@ def club_leaders(abbrs):
             gp = _num(gl.get("gamesPlayed"))
             sv = _num(gl.get("savePercentage"))
             gaa = _num(gl.get("goalsAgainstAverage"))
-            if not name or gp is None or gp < 5:
+            if not name or gp is None or gp < 5 or sv is None or gaa is None:
                 continue
-            if sv is not None and (best_sv is None or sv > best_sv["value"]):
-                best_sv = {"name": name, "team": abbr, "value": sv, "detail": None}
-            if gaa is not None and (best_gaa is None or gaa < best_gaa["value"]):
-                best_gaa = {"name": name, "team": abbr, "value": gaa, "detail": None}
+            cur = starter_by_team.get(abbr)
+            if cur is None or gp > cur["gp"]:
+                starter_by_team[abbr] = {
+                    "name": name, "team": abbr, "gp": gp, "sv": sv, "gaa": gaa,
+                }
     if fetched == 0:
         return None
+
+    def top6(rows, key):
+        vals = [r for r in rows if r.get(key) is not None]
+        vals.sort(key=lambda r: -r[key])
+        return vals[:6]
+
+    points_top = top6(skaters, "pts")
+    goals_top = top6(skaters, "goals")
+    sog_top = top6([s for s in skaters if s["gp"] >= 5], "sog_gp")
+    goalies = sorted(starter_by_team.values(), key=lambda g: -g["gp"])
+    best_sv = max(goalies, key=lambda g: g["sv"]) if goalies else None
+    best_gaa = min(goalies, key=lambda g: g["gaa"]) if goalies else None
     return {
-        "points": best_pts,
-        "goals": best_goals,
-        "sog": best_sog,
-        "sv": best_sv,
-        "gaa": best_gaa,
+        "points": ({"name": points_top[0]["name"], "team": points_top[0]["team"],
+                    "value": points_top[0]["pts"], "detail": points_top[0]["detail"]}
+                   if points_top else None),
+        "goals": ({"name": goals_top[0]["name"], "team": goals_top[0]["team"],
+                   "value": goals_top[0]["goals"], "detail": None}
+                  if goals_top else None),
+        "sog": ({"name": sog_top[0]["name"], "team": sog_top[0]["team"],
+                 "value": sog_top[0]["sog_gp"], "detail": None}
+                if sog_top else None),
+        "sv": ({"name": best_sv["name"], "team": best_sv["team"],
+                "value": best_sv["sv"], "detail": None} if best_sv else None),
+        "gaa": ({"name": best_gaa["name"], "team": best_gaa["team"],
+                 "value": best_gaa["gaa"], "detail": None} if best_gaa else None),
+        "points_top": [{"name": s["name"], "team": s["team"],
+                        "value": s["pts"], "detail": s["detail"]} for s in points_top],
+        "goals_top": [{"name": s["name"], "team": s["team"],
+                       "value": s["goals"], "detail": None} for s in goals_top],
+        "sog_top": [{"name": s["name"], "team": s["team"],
+                     "value": s["sog_gp"], "detail": None} for s in sog_top],
+        "goalies": goalies,
         "teams_fetched": fetched,
     }
 
