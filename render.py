@@ -515,7 +515,10 @@ def _season_table(view_id, label, default_key, default_desc, columns, teams):
     for t in rows:
         cells = []
         for key, _lbl, kind, fn, _lower, _shade in columns:
-            v = t.get(key)
+            # Season tab shows team abbreviations (CBJ, DET, TOR) to keep
+            # rows short on mobile; the full name stays in data-team so
+            # the search box still matches either form.
+            v = (t.get("abbr") or t.get("team")) if key == "team" else t.get(key)
             disp = fn(v)
             if kind == "num":
                 dv = f' data-v="{v}"' if isinstance(v, (int, float)) else ""
@@ -525,7 +528,7 @@ def _season_table(view_id, label, default_key, default_desc, columns, teams):
             else:
                 cells.append(f"<td>{disp}</td>")
         trs.append(
-            f'<tr data-team="{html.escape(t["team"].lower())}">{"".join(cells)}</tr>'
+            f'<tr data-team="{html.escape((t["team"] + " " + (t.get("abbr") or "")).lower().strip())}">{"".join(cells)}</tr>'
         )
     return (
         f'<div class="season-view" data-view-panel="{view_id}"'
