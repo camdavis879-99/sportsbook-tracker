@@ -24,7 +24,7 @@ import re
 import sys
 import unicodedata
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 PHX = ZoneInfo("America/Phoenix")
@@ -494,6 +494,85 @@ def main():
                     return None
         return None
 
+    # Back-to-back starter detection (NHL data only, no DailyFaceoff).
+    # A team that played yesterday almost never starts the same goalie
+    # today, so naming yesterday's starter (from the boxscore's starter
+    # flag, falling back to the goalie with the most time on ice) and
+    # the likely starter today (the roster goalie with the most starts
+    # who did not start yesterday) is the best early signal available,
+    # since confirmed starters are not announced until morning skate,
+    # hours after the 5 AM build.
+    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    y_sched = fetch_json(f"{NHL}/schedule/{yesterday}")
+    y_games = {}
+    if y_sched:
+        # The date lives on the gameWeek entry, not on each game.
+        for wd in y_sched.get("gameWeek", []):
+            if wd.get("date") != yesterday:
+                continue
+            for yg in wd.get("games", []):
+                gid = yg.get("id")
+                if not gid:
+                    continue
+                for side in ("awayTeam", "homeTeam"):
+                    ab = yg.get(side, {}).get("abbrev", "")
+                    if ab:
+                        y_games[ab] = gid
+
+    def _starter_from_boxscore(game_id, abbr):
+        """The starter's abbreviated name (e.g. 'A. Schmid') for `abbr`
+        in a completed game, from the boxscore's starter flag, or None
+        when it cannot be determined. Falls back to the goalie with the
+        most time on ice when no starter flag is set."""
+        bs = fetch_json(f"{NHL}/gamecenter/{game_id}/boxscore")
+        if not bs:
+            return None
+        pbg = bs.get("playerByGameStats", {})
+        best = None
+        best_secs = 0
+        for side in ("awayTeam", "homeTeam"):
+            if (bs.get(side, {}) or {}).get("abbrev", "") != abbr:
+                continue
+            for gl in (pbg.get(side, {}) or {}).get("goalies", []):
+                name = (gl.get("name") or {}).get("default", "").strip()
+                if not name:
+                    continue
+                if gl.get("starter"):
+                    return name
+                toi = gl.get("toi", "00:00") or "00:00"
+                try:
+                    m, s = str(toi).split(":")
+                    secs = int(m) * 60 + int(s)
+                except (ValueError, AttributeError):
+                    secs = 0
+                if secs > best_secs:
+                    best_secs = secs
+                    best = name
+        return best if best_secs > 0 else None
+
+    def back_to_back_note(abbr, full):
+        """'Back-to-back — X started yesterday, Y likely starts today.'
+        for a team that played yesterday, else None. The boxscore gives
+        an abbreviated name, so it is resolved to the roster full name
+        before display."""
+        gid = y_games.get(abbr)
+        if not gid:
+            return None
+        y_short = _starter_from_boxscore(gid, abbr)
+        if not y_short:
+            return None
+        roster = club.get(abbr, {}).get("goalies", [])
+        y_starter = next(
+            (g["name"] for g in roster if same_player(g["name"], y_short)),
+            y_short,
+        )
+        cands = [g for g in roster if not same_player(g["name"], y_starter)]
+        likely = cands[0]["name"] if cands else ""
+        if likely:
+            return (f"{full} are on a back-to-back — {y_starter} started "
+                    f"yesterday, {likely} likely starts today.")
+        return f"{full} are on a back-to-back — {y_starter} started yesterday."
+
     # FanDuel spreads + totals from Action Network's per-game articles.
     # FanDuel publishes no public API; the articles carry FanDuel tables.
     # Slugs vary ("...-odds-{date}" vs "...-odds-for-{date}"), so try both;
@@ -733,6 +812,9 @@ def main():
             if hit:
                 no1, status = hit
                 notes.append(f"{full} No. 1 goalie {no1} is out ({status}).")
+            b2b = back_to_back_note(abbr, full)
+            if b2b:
+                notes.append(b2b)
         for n in notes:
             lines.append(f"  Note: {n}")
         chart_games.append({
