@@ -158,13 +158,13 @@ def club_leaders(abbrs):
 
     Fetches each team's skaters/goalies once and returns ranked lists:
     top 6 skaters by points, goals, and shots per game (gp >= 5), plus
-    one starting goalie per team (most games played, gp >= 5) with
-    save % and GAA, so the page can rank all 32 starters. Any team
-    that fails to fetch is skipped; returns None when nothing usable
-    was fetched.
+    every goalie with 5+ games played (with save % and GAA), so the
+    page can rank all qualifying goalies, not just one starter per
+    team. Any team that fails to fetch is skipped; returns None when
+    nothing usable was fetched.
     """
     skaters = []
-    starter_by_team = {}
+    goalies = []
     fetched = 0
     for abbr in abbrs:
         data = fetch_json(f"{NHL}/club-stats/{abbr}/now", timeout=15)
@@ -196,11 +196,9 @@ def club_leaders(abbrs):
             gaa = _num(gl.get("goalsAgainstAverage"))
             if not name or gp is None or gp < 5 or sv is None or gaa is None:
                 continue
-            cur = starter_by_team.get(abbr)
-            if cur is None or gp > cur["gp"]:
-                starter_by_team[abbr] = {
-                    "name": name, "team": abbr, "gp": gp, "sv": sv, "gaa": gaa,
-                }
+            goalies.append({
+                "name": name, "team": abbr, "gp": gp, "sv": sv, "gaa": gaa,
+            })
     if fetched == 0:
         return None
 
@@ -212,7 +210,7 @@ def club_leaders(abbrs):
     points_top = top6(skaters, "pts")
     goals_top = top6(skaters, "goals")
     sog_top = top6([s for s in skaters if s["gp"] >= 5], "sog_gp")
-    goalies = sorted(starter_by_team.values(), key=lambda g: -g["gp"])
+    goalies.sort(key=lambda g: -g["gp"])
     best_sv = max(goalies, key=lambda g: g["sv"]) if goalies else None
     best_gaa = min(goalies, key=lambda g: g["gaa"]) if goalies else None
     return {
