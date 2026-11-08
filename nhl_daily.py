@@ -702,8 +702,9 @@ def main():
         dbg("fanduel direct len:", len(_fd), "head:", _fd[:200].replace("\n", " "))
 
     date_label = today.strftime("%A, %B %-d")
-    lines = [f"NHL today — {date_label} ({len(games)} games)",
-             "Tracker: https://camdavis879-99.github.io/sportsbook-tracker/"]
+    short_label = today.strftime("%a, %b %-d")
+    lines = [f"NHL — {short_label} · {len(games)} games",
+             "https://camdavis879-99.github.io/sportsbook-tracker/"]
     chart_games = []
     for dt, g in games:
         away = g.get("awayTeam", {})
@@ -717,7 +718,6 @@ def main():
         h_full = f"{h_place} {h_name}".strip() if h_place else h_name
         state = g.get("gameState", "FUT")
         state_txt = "" if state == "FUT" else (" (Final)" if state == "FINAL" else f" ({state})")
-        lines.append("")
         lines.append(f"{a_full} at {h_full} — {fmt_time(g.get('startTimeUTC', ''))}{state_txt}")
         a_avg = averages.get(a_abbr)
         h_avg = averages.get(h_abbr)
