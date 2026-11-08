@@ -612,11 +612,11 @@ def season_section(season):
     if goalies:
         sv_ranked = [(f"{g['name']} ({g['team']})", g["sv"])
                      for g in sorted(goalies, key=lambda g: -g["sv"])]
-        cats.append(_leader_cat("Save % — starting goalies", sv_ranked, _sv,
+        cats.append(_leader_cat("Save % — goalies (5+ GP)", sv_ranked, _sv,
                                 show_bottom=True))
         gaa_ranked = [(f"{g['name']} ({g['team']})", g["gaa"])
                       for g in sorted(goalies, key=lambda g: g["gaa"])]
-        cats.append(_leader_cat("GAA — starting goalies", gaa_ranked, _f2,
+        cats.append(_leader_cat("GAA — goalies (5+ GP)", gaa_ranked, _f2,
                                 show_bottom=True))
     for key, label, fmt in (
         ("points_top", "Points", _int),
