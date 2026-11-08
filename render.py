@@ -119,19 +119,24 @@ def card(g):
     if analytics:
         items = "".join(f"<div>{html.escape(s)}</div>" for s in analytics)
         parts.append(f'<div class="analytics">{items}</div>')
+    extra = []
     o = g.get("odds")
     if o:
-        parts.append(
+        extra.append(
             f'<div class="odds">FanDuel: {html.escape(a)} {html.escape(o["away_spread"])} &middot; '
             f'{html.escape(h)} {html.escape(o["home_spread"])} &middot; '
             f'O/U {html.escape(o["total"])}</div>'
         )
     mb = model_block(g)
     if mb:
-        parts.append(mb)
+        extra.append(mb)
     sb = sog_block(g)
     if sb:
-        parts.append(sb)
+        extra.append(sb)
+    if extra:
+        parts.append('<details class="card-details"><summary>More details</summary>')
+        parts.extend(extra)
+        parts.append("</details>")
     parts.append("</section>")
     return "\n".join(parts)
 
@@ -755,6 +760,9 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .pct-value {{ width: 84px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 600; }}
 .goalie-note {{ margin-top: 12px; font-size: 13px; font-weight: 600; }}
 .gstat {{ color: var(--muted); font-size: 12px; }}
+.card-details {{ margin-top: 10px; }}
+.card-details summary {{ cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }}
+.card-details summary:hover {{ color: var(--text); }}
 .analytics {{ margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
 .section-title {{ margin: 24px 0 6px; font-size: 19px; letter-spacing: -0.01em; }}
 .section-note {{ color: var(--muted); margin: 0 0 14px; line-height: 1.5; font-size: 14px; }}
