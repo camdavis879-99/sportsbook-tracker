@@ -695,15 +695,18 @@ PAGE_JS = """<script>
     });
   });
 
-  // Page tabs: Daily | Season Stats.
+  // Page tabs: Daily | Season Stats | NHL Book | NFL Book | CBB Book.
   var tabBtns = document.querySelectorAll("[data-tab]");
   tabBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
+      var tab = btn.getAttribute("data-tab");
       tabBtns.forEach(function (b) { b.classList.remove("active"); });
       btn.classList.add("active");
-      document.getElementById("tab-daily").hidden = btn.getAttribute("data-tab") !== "daily";
-      var season = document.getElementById("tab-season");
-      if (season) season.hidden = btn.getAttribute("data-tab") !== "season";
+      document.getElementById("tab-daily").hidden = tab !== "daily";
+      ["season", "book", "nflbook", "cbbbook"].forEach(function (t) {
+        var el = document.getElementById("tab-" + t);
+        if (el) el.hidden = tab !== t;
+      });
     });
   });
 
@@ -862,6 +865,18 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
   .stats-table td.t1 {{ background: rgba(248, 113, 113, 0.16); }}
 }}
 .glossary {{ color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 16px; }}
+.book-stats {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }}
+.book-stat {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; min-width: 100px; }}
+.book-stat-label {{ display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 2px; }}
+.book-stat-value {{ font-size: 17px; font-weight: 700; }}
+.book-breakdown {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; line-height: 1.7; color: var(--muted); }}
+.book-breakdown-item {{ display: inline-block; margin-right: 20px; }}
+.pos {{ color: #16a34a; font-weight: 700; }}
+.neg {{ color: #dc2626; font-weight: 700; }}
+@media (prefers-color-scheme: dark) {{
+  .pos {{ color: #4ade80; }}
+  .neg {{ color: #f87171; }}
+}}
 footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
 @media (max-width: 520px) {{
   .pct-label {{ width: 84px; font-size: 12px; }}
@@ -918,14 +933,125 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
 """
 
 
-def tabs_nav(has_season):
-    """Daily | Season Stats buttons, or "" when no season data exists."""
-    if not has_season:
+def book_section(book, title, note):
+    """Render a Book tab content, or "" when no bet data.
+
+    book is a bets json dict: as_of, bets (list). Shows summary
+    stats at top, then a sortable table of all bets, most recent first.
+    title is e.g. "NHL Book"; note is the subtitle line.
+    """
+    bets = (book or {}).get("bets") or []
+    if not bets:
         return ""
-    return (
-        '<div class="tabs"><button class="tab-btn active" data-tab="daily">Daily</button>'
-        '<button class="tab-btn" data-tab="season">Season Stats</button></div>'
+    as_of = book.get("as_of", "")
+    settled = [b for b in bets if b["result"] in ("Won", "Lost")]
+    won = [b for b in bets if b["result"] == "Won"]
+    lost = [b for b in bets if b["result"] == "Lost"]
+    open_bets = [b for b in bets if b["result"] == "Open"]
+    total_staked = sum(b["stake"] for b in settled)
+    total_profit = sum(b["profit"] for b in settled if b["profit"] is not None)
+    win_rate = len(won) / len(settled) * 100 if settled else 0
+    roi = total_profit / total_staked * 100 if total_staked else 0
+    singles = [b for b in settled if b["bet_type"] in ("ML", "PL", "Total", "Prop")]
+    parlays = [b for b in settled if b["bet_type"] in ("Parlay", "SGP", "SGP+")]
+    singles_profit = sum(b["profit"] for b in singles if b["profit"] is not None)
+    parlays_profit = sum(b["profit"] for b in parlays if b["profit"] is not None)
+    fd = [b for b in settled if b["book"] == "FanDuel"]
+    fan = [b for b in settled if b["book"] == "Fanatics"]
+    fd_profit = sum(b["profit"] for b in fd if b["profit"] is not None)
+    fan_profit = sum(b["profit"] for b in fan if b["profit"] is not None)
+
+    def money(v):
+        sign = "+" if v > 0 else ""
+        return f"{sign}${v:.2f}"
+
+    def money_cls(v):
+        if v is None:
+            return ""
+        return "pos" if v > 0 else ("neg" if v < 0 else "")
+
+    stats = (
+        '<div class="book-stats">'
+        f'<div class="book-stat"><span class="book-stat-label">Bets</span><span class="book-stat-value">{len(bets)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Won</span><span class="book-stat-value">{len(won)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Lost</span><span class="book-stat-value">{len(lost)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Open</span><span class="book-stat-value">{len(open_bets)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Win rate</span><span class="book-stat-value">{win_rate:.1f}%</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Staked</span><span class="book-stat-value">${total_staked:.2f}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Profit/Loss</span><span class="book-stat-value {money_cls(total_profit)}">{money(total_profit)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">ROI</span><span class="book-stat-value {money_cls(roi)}">{roi:+.1f}%</span></div>'
+        "</div>"
+        '<div class="book-breakdown">'
+        f'<div class="book-breakdown-item">Singles: {len(singles)} bets, <span class="{money_cls(singles_profit)}">{money(singles_profit)}</span></div>'
+        f'<div class="book-breakdown-item">Parlays/SGPs: {len(parlays)} bets, <span class="{money_cls(parlays_profit)}">{money(parlays_profit)}</span></div>'
+        f'<div class="book-breakdown-item">FanDuel: {len(fd)} settled, <span class="{money_cls(fd_profit)}">{money(fd_profit)}</span></div>'
+        f'<div class="book-breakdown-item">Fanatics: {len(fan)} settled, <span class="{money_cls(fan_profit)}">{money(fan_profit)}</span></div>'
+        "</div>"
     )
+    rows = []
+    for b in sorted(bets, key=lambda x: x["date"], reverse=True):
+        odds = fmt_odds(b["odds"])
+        stake = f'${b["stake"]:.2f}'
+        if b.get("is_bonus"):
+            stake += " (Bonus)"
+        elif b.get("is_fancash"):
+            stake += " (FanCash)"
+        profit = b.get("profit")
+        if profit is None:
+            profit_txt = "—"
+            profit_cls = ""
+        else:
+            profit_txt = money(profit)
+            profit_cls = f' class="{money_cls(profit)}"'
+        result_cls = ""
+        if b["result"] == "Won":
+            result_cls = ' class="pos"'
+        elif b["result"] == "Lost":
+            result_cls = ' class="neg"'
+        rows.append(
+            f'<tr><td>{html.escape(b["date"])}</td>'
+            f'<td>{html.escape(b["matchup"])}</td>'
+            f'<td>{html.escape(b["bet_type"])}</td>'
+            f'<td data-v="{b["odds"]}">{odds}</td>'
+            f'<td data-v="{b["stake"]}">{stake}</td>'
+            f'<td{result_cls}>{html.escape(b["result"])}</td>'
+            f'<td data-v="{profit if profit is not None else 0}"{profit_cls}>{profit_txt}</td>'
+            f"<td>—</td></tr>"
+        )
+    table = (
+        '<div class="stats-wrap"><table class="stats-table sortable" id="book-table">'
+        "<thead><tr>"
+        '<th data-sort="text">Date</th><th data-sort="text">Matchup</th>'
+        '<th data-sort="text">Type</th><th data-sort="num">Odds</th>'
+        '<th data-sort="num">Stake</th><th data-sort="text">Result</th>'
+        '<th data-sort="num">P/L</th><th data-sort="text">CLV</th>'
+        "</tr></thead>"
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+    )
+    return (
+        f'<h2 class="section-title">{html.escape(title)}</h2>'
+        f'<p class="section-note">{note} Most recent first. Profit is cash profit (FanCash pays profit only, stake not returned; '
+        "bonus bets pay winnings only). CLV tracking started Nov 8, no closing lines recorded yet "
+        "for historical bets.</p>"
+        f"{stats}"
+        f"{table}"
+    )
+
+
+def tabs_nav(has_season, has_nhl_book=False, has_nfl_book=False, has_cbb_book=False):
+    """Daily | Season Stats | NHL Book | NFL Book | CBB Book buttons."""
+    btns = ['<button class="tab-btn active" data-tab="daily">Daily</button>']
+    if has_season:
+        btns.append('<button class="tab-btn" data-tab="season">Season Stats</button>')
+    if has_nhl_book:
+        btns.append('<button class="tab-btn" data-tab="book">NHL Book</button>')
+    if has_nfl_book:
+        btns.append('<button class="tab-btn" data-tab="nflbook">NFL Book</button>')
+    if has_cbb_book:
+        btns.append('<button class="tab-btn" data-tab="cbbbook">CBB Book</button>')
+    if len(btns) == 1:
+        return ""
+    return f'<div class="tabs">{"".join(btns)}</div>'
 
 
 def main():
@@ -956,6 +1082,51 @@ def main():
     season_container = (
         f'<div id="tab-season" hidden>\n{season_html}\n</div>' if season_html else ""
     )
+    book = None
+    book_src = os.path.join(os.path.dirname(__file__), "nhl_bets.json")
+    if os.path.exists(book_src):
+        try:
+            with open(book_src) as f:
+                book = json.load(f)
+        except Exception:
+            book = None
+    book_html = book_section(
+        book, "NHL Book",
+        f"All NHL bets, FanDuel + Fanatics, Oct 29 – {html.escape(str((book or {}).get('as_of', '')))}.",
+    )
+    book_container = (
+        f'<div id="tab-book" hidden>\n{book_html}\n</div>' if book_html else ""
+    )
+    nfl_book = None
+    nfl_book_src = os.path.join(os.path.dirname(__file__), "nfl_bets.json")
+    if os.path.exists(nfl_book_src):
+        try:
+            with open(nfl_book_src) as f:
+                nfl_book = json.load(f)
+        except Exception:
+            nfl_book = None
+    nfl_book_html = book_section(
+        nfl_book, "NFL Book",
+        f"All NFL bets, FanDuel + Fanatics, Oct 31 – {html.escape(str((nfl_book or {}).get('as_of', '')))}.",
+    )
+    nfl_book_container = (
+        f'<div id="tab-nflbook" hidden>\n{nfl_book_html}\n</div>' if nfl_book_html else ""
+    )
+    cbb_book = None
+    cbb_book_src = os.path.join(os.path.dirname(__file__), "cbb_bets.json")
+    if os.path.exists(cbb_book_src):
+        try:
+            with open(cbb_book_src) as f:
+                cbb_book = json.load(f)
+        except Exception:
+            cbb_book = None
+    cbb_book_html = book_section(
+        cbb_book, "CBB Book",
+        f"All CBB bets, FanDuel only, Oct 31 – {html.escape(str((cbb_book or {}).get('as_of', '')))}.",
+    )
+    cbb_book_container = (
+        f'<div id="tab-cbbbook" hidden>\n{cbb_book_html}\n</div>' if cbb_book_html else ""
+    )
     out = PAGE.format(
         date=html.escape(data["date"]),
         cards=cards,
@@ -964,15 +1135,18 @@ def main():
         page_script=PAGE_JS,
         nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
-        tabs=tabs_nav(bool(season)),
-        season_container=season_container,
+        tabs=tabs_nav(bool(season), bool(book_html), bool(nfl_book_html), bool(cbb_book_html)),
+        season_container=season_container + book_container + nfl_book_container + cbb_book_container,
     )
     os.makedirs(os.path.dirname(dst) or ".", exist_ok=True)
     with open(dst, "w") as f:
         f.write(out)
     print(f"Wrote {dst} with {len(data['games'])} NHL games"
           f" and {len(nfl['games']) if nfl else 0} NFL games"
-          f" (season stats: {len(season['teams']) if season else 0} teams).")
+          f" (season stats: {len(season['teams']) if season else 0} teams;"
+          f" NHL Book: {len(book['bets']) if book else 0} bets;"
+          f" NFL Book: {len(nfl_book['bets']) if nfl_book else 0} bets;"
+          f" CBB Book: {len(cbb_book['bets']) if cbb_book else 0} bets).")
 
 
 if __name__ == "__main__":
