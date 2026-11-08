@@ -832,17 +832,17 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .leaders-board-title {{ margin: 0 0 10px; font-size: 15px; }}
 .leaders-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
 @media (max-width: 700px) {{ .leaders-grid {{ grid-template-columns: 1fr; }} }}
-.leader-cat {{ background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--offense); border-radius: 12px; padding: 10px 12px; }}
+.leader-cat {{ background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--offense); border-radius: 12px; padding: 12px 14px; }}
 .leader-cat.tone-def {{ border-left-color: var(--defbar); }}
-.leader-cat h4 {{ margin: 0 0 6px; font-size: 14px; }}
+.leader-cat h4 {{ margin: 0 0 8px; font-size: 14px; }}
 .leader-cat.tone-off h4 {{ color: var(--offense); }}
 .leader-cat.tone-def h4 {{ color: var(--defbar); }}
-.leader-list {{ list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.5; }}
+.leader-list {{ list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.7; }}
 .leader-list li {{ display: flex; gap: 6px; align-items: baseline; }}
 .leader-list .lr {{ color: var(--muted); width: 18px; text-align: right; flex-shrink: 0; }}
-.leader-list .lname {{ flex: 1; min-width: 0; }}
-.leader-list b {{ flex-shrink: 0; }}
-.leader-bottom {{ margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }}
+.leader-list .lname {{ flex: 0 0 auto; }}
+.leader-list b {{ flex-shrink: 0; margin-left: 10px; }}
+.leader-bottom {{ margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }}
 .stats-wrap {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px 16px 12px; overflow-x: auto; }}
 .stats-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
 .stats-table th, .stats-table td {{ padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }}
