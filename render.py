@@ -27,26 +27,48 @@ is absent the tab is omitted and the page is the daily view only.
 import html
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 
-SCALE = 5.0
-OFFENSE = "#2f5fd0"
-DEFENSE = "#64748b"
-
-
 def fmt(v):
-    return f"{float(v):.1f}"
+    return f"{float(v):.1f}" if v is not None else "—"
 
 
-def bar(label, value, rank, color):
-    pct = max(0.0, min(100.0, float(value) / SCALE * 100.0))
+def _rank_num(rank_str):
+    """Numeric league rank from an ordinal string like '5th' (1 = best)."""
+    m = re.match(r"(\d+)", str(rank_str or ""))
+    return int(m.group(1)) if m else 16
+
+
+def _percentile(rank_str):
+    """Percentile (0-100) from a league rank: rank 1 = 100, rank 32 = 0.
+
+    Rank 1 is best for both metrics (most goals scored for offense,
+    fewest allowed for defense), so a longer bar is always better and
+    the 50% tick is league average.
+    """
+    rank = _rank_num(rank_str)
+    return max(0.0, min(100.0, (32 - rank) / 31.0 * 100.0))
+
+
+def pct_bar(label, value, rank, kind):
+    """One percentile bar: full-width bordered track, 50% average tick.
+
+    The track is a visible bordered box, so 100% (the right edge) is
+    obvious, and the tick in the middle is league average. Length is
+    the team's percentile, so past the tick is above average (good).
+    `kind` is 'off' (amber) or 'def' (blue): color names the metric,
+    length names how good it is.
+    """
+    pct = _percentile(rank)
     return (
-        f'<div class="bar-row"><span class="bar-label">{html.escape(label)}</span>'
-        f'<div class="bar-track"><div class="bar-fill" style="width:{pct:.0f}%;background:{color}"></div></div>'
-        f'<span class="bar-value">{fmt(value)} &middot; {html.escape(str(rank))}</span></div>'
+        f'<div class="pct-row"><span class="pct-label">{html.escape(label)}</span>'
+        f'<div class="pct-track"><div class="pct-fill {kind}" style="width:{pct:.0f}%"></div>'
+        f'<div class="pct-tick"></div></div>'
+        f'<span class="pct-value">{fmt(value)} &middot; {html.escape(str(rank))}</span></div>'
     )
 
 
@@ -73,11 +95,11 @@ def card(g):
         f'<span class="time">{html.escape(g["time"])}</span></div>'
     )
     parts.append('<div class="pair-label">Away offense vs home defense</div>')
-    parts.append(bar(f"{a} offense", g["away_gf"], g["away_gf_rank"], OFFENSE))
-    parts.append(bar(f"{h} defense", g["home_ga"], g["home_ga_rank"], DEFENSE))
+    parts.append(pct_bar(f"{a} offense", g["away_gf"], g["away_gf_rank"], "off"))
+    parts.append(pct_bar(f"{h} defense", g["home_ga"], g["home_ga_rank"], "def"))
     parts.append('<div class="pair-label">Home offense vs away defense</div>')
-    parts.append(bar(f"{h} offense", g["home_gf"], g["home_gf_rank"], OFFENSE))
-    parts.append(bar(f"{a} defense", g["away_ga"], g["away_ga_rank"], DEFENSE))
+    parts.append(pct_bar(f"{h} offense", g["home_gf"], g["home_gf_rank"], "off"))
+    parts.append(pct_bar(f"{a} defense", g["away_ga"], g["away_ga_rank"], "def"))
     note = g.get("goalie_note") or ""
     if note:
         parts.append(f'<div class="goalie-note">Note: {html.escape(note)}</div>')
@@ -701,9 +723,9 @@ PAGE = """<!DOCTYPE html>
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
 <title>NHL + NFL Matchup Chart — {date}</title>
 <style>
-:root {{ --bg: #fafafa; --card: #ffffff; --text: #171717; --muted: #737373; --border: #e5e5e5; --accent: #2f5fd0; --defense: #64748b; --chip: #f0f0f0; --chip-text: #404040; }}
+:root {{ --bg: #fafafa; --card: #ffffff; --text: #171717; --muted: #737373; --border: #e5e5e5; --accent: #2f5fd0; --defense: #64748b; --offense: #e8912d; --defbar: #2f5fd0; --chip: #f0f0f0; --chip-text: #404040; }}
 @media (prefers-color-scheme: dark) {{
-  :root {{ --bg: #0a0a0a; --card: #171717; --text: #f5f5f5; --muted: #a3a3a3; --border: #262626; --accent: #7aa2ff; --defense: #8b98a9; --chip: #262626; --chip-text: #e5e5e5; }}
+  :root {{ --bg: #0a0a0a; --card: #171717; --text: #f5f5f5; --muted: #a3a3a3; --border: #262626; --accent: #7aa2ff; --defense: #8b98a9; --offense: #f0a83c; --defbar: #7aa2ff; --chip: #262626; --chip-text: #e5e5e5; }}
 }}
 * {{ box-sizing: border-box; }}
 body {{ margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
@@ -723,11 +745,14 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .matchup h2 {{ margin: 0; font-size: 17px; letter-spacing: -0.01em; }}
 .time {{ color: var(--muted); font-size: 13px; white-space: nowrap; }}
 .pair-label {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 10px 0 4px; }}
-.bar-row {{ display: flex; align-items: center; gap: 10px; margin: 5px 0; }}
-.bar-label {{ width: 96px; flex-shrink: 0; font-size: 13px; }}
-.bar-track {{ flex: 1; height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }}
-.bar-fill {{ height: 100%; border-radius: 5px; }}
-.bar-value {{ width: 84px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 600; }}
+.pct-row {{ display: flex; align-items: center; gap: 10px; margin: 5px 0; }}
+.pct-label {{ width: 96px; flex-shrink: 0; font-size: 13px; }}
+.pct-track {{ flex: 1; height: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; position: relative; }}
+.pct-fill {{ height: 100%; border-radius: 6px; }}
+.pct-fill.off {{ background: var(--offense); }}
+.pct-fill.def {{ background: var(--defbar); }}
+.pct-tick {{ position: absolute; left: calc(50% - 1px); top: 0; bottom: 0; width: 2px; background: var(--text); opacity: 0.55; }}
+.pct-value {{ width: 84px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 600; }}
 .goalie-note {{ margin-top: 12px; font-size: 13px; font-weight: 600; }}
 .gstat {{ color: var(--muted); font-size: 12px; }}
 .analytics {{ margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.6; }}
@@ -788,8 +813,8 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .glossary {{ color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 16px; }}
 footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.5; }}
 @media (max-width: 520px) {{
-  .bar-label {{ width: 84px; font-size: 12px; }}
-  .bar-value {{ width: 76px; font-size: 12px; }}
+  .pct-label {{ width: 84px; font-size: 12px; }}
+  .pct-value {{ width: 76px; font-size: 12px; }}
 }}
 .topnav {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }}
 .brand {{ font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }}
@@ -812,9 +837,16 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
 <p class="subtitle">{date} &middot; NHL today, NFL this week &middot; rebuilt every morning</p>
 {tabs}
 <div id="tab-daily">
+{picks_section}
+<div class="grid">
+{cards}
+</div>
+{league_section}
+{nfl_section}
+{bet_types}
 <div class="guide">
 <h2>How to read it</h2>
-<p>Each card pairs offense against the opposing defense on a common 0 to 5 scale. Blue bars are goals scored per game, slate bars are goals allowed per game, with each team's league rank.</p>
+<p>Each card pairs offense against the opposing defense. Every bar is the team's percentile (0-100) on a bordered track: the right edge is 100%, and the tick in the middle is league average (50th percentile). Longer is always better, for offense and defense alike, so a bar past the tick is above average. Amber is goals scored per game, blue is goals allowed per game, with each team's raw number and league rank next to its bar.</p>
 <p>GF rank 1st means the most goals scored per game. GA rank 1st means the fewest goals allowed per game.</p>
 <p>A note appears on a card only when a team's No. 1 goalie is confirmed out.</p>
 <p>The FanDuel row on each card shows the spread, the puck line, and O/U, the total goals line. Lines only, no prices.</p>
@@ -823,13 +855,6 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
 <p>SOG watch lists each team's top two shooters by shots on goal per game (minimum 5 games played) and the shots per game the opposing team allows.</p>
 <p>League totals lists every team's average combined goals per game and goal differential for the season, sortable by either column.</p>
 </div>
-{picks_section}
-<div class="grid">
-{cards}
-</div>
-{league_section}
-{nfl_section}
-{bet_types}
 </div>
 {season_container}
 <footer>
