@@ -695,7 +695,7 @@ PAGE_JS = """<script>
     });
   });
 
-  // Page tabs: Daily | Season Stats | NHL Book | NFL Book | CBB Book.
+  // Page tabs: Daily | Season Stats | Total Book | NHL Book | NFL Book | CBB Book.
   var tabBtns = document.querySelectorAll("[data-tab]");
   tabBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -703,10 +703,84 @@ PAGE_JS = """<script>
       tabBtns.forEach(function (b) { b.classList.remove("active"); });
       btn.classList.add("active");
       document.getElementById("tab-daily").hidden = tab !== "daily";
-      ["season", "book", "nflbook", "cbbbook"].forEach(function (t) {
+      ["season", "totalbook", "book", "nflbook", "cbbbook"].forEach(function (t) {
         var el = document.getElementById("tab-" + t);
         if (el) el.hidden = tab !== t;
       });
+    });
+  });
+
+  // Total Book filters: one pick per group (Book / Sport / Type), combined with AND.
+  var bookFilters = {book: "all", sport: "all", kind: "all"};
+  function tbMoney(v) {
+    return (v > 0 ? "+" : "") + "$" + v.toFixed(2);
+  }
+  function tbMoneySpan(v) {
+    var cls = v > 0 ? "pos" : (v < 0 ? "neg" : "");
+    return '<span class="' + cls + '">' + tbMoney(v) + '</span>';
+  }
+  function tbSet(id, txt, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = txt;
+    if (cls !== undefined) el.className = "book-stat-value" + (cls ? " " + cls : "");
+  }
+  function applyBookFilters() {
+    var rows = document.querySelectorAll("#total-book-table tbody tr");
+    var bets = 0, won = 0, lost = 0, open = 0, staked = 0, profit = 0;
+    var sN = 0, sP = 0, pN = 0, pP = 0, fdN = 0, fdP = 0, fanN = 0, fanP = 0;
+    rows.forEach(function (tr) {
+      var show = (bookFilters.book === "all" || tr.getAttribute("data-book") === bookFilters.book)
+        && (bookFilters.sport === "all" || tr.getAttribute("data-sport") === bookFilters.sport)
+        && (bookFilters.kind === "all" || tr.getAttribute("data-kind") === bookFilters.kind);
+      tr.style.display = show ? "" : "none";
+      if (!show) return;
+      bets++;
+      var res = tr.getAttribute("data-result");
+      if (res === "Won") won++;
+      else if (res === "Lost") lost++;
+      else open++;
+      if (res === "Won" || res === "Lost") {
+        var stake = parseFloat(tr.getAttribute("data-stake")) || 0;
+        var prof = parseFloat(tr.getAttribute("data-profit")) || 0;
+        staked += stake;
+        profit += prof;
+        if (tr.getAttribute("data-kind") === "single") { sN++; sP += prof; }
+        else { pN++; pP += prof; }
+        if (tr.getAttribute("data-book") === "FanDuel") { fdN++; fdP += prof; }
+        else { fanN++; fanP += prof; }
+      }
+    });
+    var settled = won + lost;
+    var winRate = settled ? (won / settled * 100).toFixed(1) + "%" : "0.0%";
+    var roi = staked ? (profit / staked * 100) : 0;
+    tbSet("tb-bets", String(bets));
+    tbSet("tb-won", String(won));
+    tbSet("tb-lost", String(lost));
+    tbSet("tb-open", String(open));
+    tbSet("tb-winrate", winRate);
+    tbSet("tb-staked", "$" + staked.toFixed(2));
+    tbSet("tb-profit", tbMoney(profit), profit > 0 ? "pos" : (profit < 0 ? "neg" : ""));
+    tbSet("tb-roi", (roi >= 0 ? "+" : "") + roi.toFixed(1) + "%", roi > 0 ? "pos" : (roi < 0 ? "neg" : ""));
+    var bd = function (id, label, n, p) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = label + ": " + n + " bets, " + tbMoneySpan(p);
+    };
+    bd("tb-bd-singles", "Singles", sN, sP);
+    bd("tb-bd-parlays", "Parlays/SGPs", pN, pP);
+    bd("tb-bd-fd", "FanDuel", fdN, fdP);
+    bd("tb-bd-fan", "Fanatics", fanN, fanP);
+    var empty = document.getElementById("total-book-empty");
+    if (empty) empty.hidden = bets !== 0;
+  }
+  document.querySelectorAll("#tab-totalbook .filter-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var g = chip.getAttribute("data-filter-group");
+      bookFilters[g] = chip.getAttribute("data-filter-value");
+      document.querySelectorAll('#tab-totalbook .filter-chip[data-filter-group="' + g + '"]').forEach(function (c) {
+        c.classList.toggle("active", c === chip);
+      });
+      applyBookFilters();
     });
   });
 
@@ -865,6 +939,11 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
   .stats-table td.t1 {{ background: rgba(248, 113, 113, 0.16); }}
 }}
 .glossary {{ color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 16px; }}
+.book-filters {{ display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 16px; }}
+.filter-group {{ display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }}
+.filter-label {{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; margin-right: 2px; }}
+.filter-chip {{ padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }}
+.filter-chip.active {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
 .book-stats {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }}
 .book-stat {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; min-width: 100px; }}
 .book-stat-label {{ display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 2px; }}
@@ -1038,11 +1117,160 @@ def book_section(book, title, note):
     )
 
 
+def total_book_section(books):
+    """Render a unified Total Book tab: all sports combined, with filter chips.
+
+    books is a list of (sport, bets-json-dict). Filters combine with AND
+    logic across groups (book / sport / type); summary stats and breakdown
+    update live in JS from the rows' data attributes.
+    """
+    all_bets = []
+    for sport, book in books:
+        for b in (book or {}).get("bets") or []:
+            b = dict(b)
+            b["_sport"] = sport
+            all_bets.append(b)
+    if not all_bets:
+        return ""
+    as_of = max(
+        (str((bk or {}).get("as_of", "")) for _, bk in books if bk), default=""
+    )
+    settled = [b for b in all_bets if b["result"] in ("Won", "Lost")]
+    won = [b for b in all_bets if b["result"] == "Won"]
+    lost = [b for b in all_bets if b["result"] == "Lost"]
+    open_bets = [b for b in all_bets if b["result"] == "Open"]
+    total_staked = sum(b["stake"] for b in settled)
+    total_profit = sum(b["profit"] for b in settled if b["profit"] is not None)
+    win_rate = len(won) / len(settled) * 100 if settled else 0
+    roi = total_profit / total_staked * 100 if total_staked else 0
+    singles = [b for b in settled if b["bet_type"] in ("ML", "PL", "Total", "Prop")]
+    parlays = [b for b in settled if b["bet_type"] in ("Parlay", "SGP", "SGP+")]
+    singles_profit = sum(b["profit"] for b in singles if b["profit"] is not None)
+    parlays_profit = sum(b["profit"] for b in parlays if b["profit"] is not None)
+    fd = [b for b in settled if b["book"] == "FanDuel"]
+    fan = [b for b in settled if b["book"] == "Fanatics"]
+    fd_profit = sum(b["profit"] for b in fd if b["profit"] is not None)
+    fan_profit = sum(b["profit"] for b in fan if b["profit"] is not None)
+
+    def money(v):
+        sign = "+" if v > 0 else ""
+        return f"{sign}${v:.2f}"
+
+    def money_cls(v):
+        if v is None:
+            return ""
+        return "pos" if v > 0 else ("neg" if v < 0 else "")
+
+    def chip(group, value, label, active=False):
+        cls = "filter-chip active" if active else "filter-chip"
+        return (
+            f'<button class="{cls}" data-filter-group="{group}" '
+            f'data-filter-value="{value}">{label}</button>'
+        )
+
+    filters = (
+        '<div class="book-filters">'
+        '<div class="filter-group"><span class="filter-label">Book</span>'
+        + chip("book", "all", "All", True)
+        + chip("book", "FanDuel", "FanDuel")
+        + chip("book", "Fanatics", "Fanatics")
+        + "</div>"
+        '<div class="filter-group"><span class="filter-label">Sport</span>'
+        + chip("sport", "all", "All", True)
+        + chip("sport", "NHL", "NHL")
+        + chip("sport", "NFL", "NFL")
+        + chip("sport", "CBB", "CBB")
+        + "</div>"
+        '<div class="filter-group"><span class="filter-label">Type</span>'
+        + chip("kind", "all", "All", True)
+        + chip("kind", "single", "Singles")
+        + chip("kind", "parlay", "Parlays &amp; SGPs")
+        + "</div>"
+        "</div>"
+    )
+    stats = (
+        '<div class="book-stats">'
+        f'<div class="book-stat"><span class="book-stat-label">Bets</span><span class="book-stat-value" id="tb-bets">{len(all_bets)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Won</span><span class="book-stat-value" id="tb-won">{len(won)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Lost</span><span class="book-stat-value" id="tb-lost">{len(lost)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Open</span><span class="book-stat-value" id="tb-open">{len(open_bets)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Win rate</span><span class="book-stat-value" id="tb-winrate">{win_rate:.1f}%</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Staked</span><span class="book-stat-value" id="tb-staked">${total_staked:.2f}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">Profit/Loss</span><span class="book-stat-value {money_cls(total_profit)}" id="tb-profit">{money(total_profit)}</span></div>'
+        f'<div class="book-stat"><span class="book-stat-label">ROI</span><span class="book-stat-value {money_cls(roi)}" id="tb-roi">{roi:+.1f}%</span></div>'
+        "</div>"
+        '<div class="book-breakdown">'
+        f'<span class="book-breakdown-item" id="tb-bd-singles">Singles: {len(singles)} bets, <span class="{money_cls(singles_profit)}">{money(singles_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-parlays">Parlays/SGPs: {len(parlays)} bets, <span class="{money_cls(parlays_profit)}">{money(parlays_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-fd">FanDuel: {len(fd)} settled, <span class="{money_cls(fd_profit)}">{money(fd_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-fan">Fanatics: {len(fan)} settled, <span class="{money_cls(fan_profit)}">{money(fan_profit)}</span></span>'
+        "</div>"
+    )
+    rows = []
+    for b in sorted(all_bets, key=lambda x: x["date"], reverse=True):
+        kind = "parlay" if b["bet_type"] in ("Parlay", "SGP", "SGP+") else "single"
+        odds = fmt_odds(b["odds"])
+        stake = f'${b["stake"]:.2f}'
+        if b.get("is_bonus"):
+            stake += " (Bonus)"
+        elif b.get("is_fancash"):
+            stake += " (FanCash)"
+        profit = b.get("profit")
+        if profit is None:
+            profit_txt = "—"
+            profit_cls = ""
+        else:
+            profit_txt = money(profit)
+            profit_cls = f' class="{money_cls(profit)}"'
+        result_cls = ""
+        if b["result"] == "Won":
+            result_cls = ' class="pos"'
+        elif b["result"] == "Lost":
+            result_cls = ' class="neg"'
+        rows.append(
+            f'<tr data-book="{html.escape(b["book"])}" data-sport="{b["_sport"]}" '
+            f'data-kind="{kind}" data-result="{html.escape(b["result"])}" '
+            f'data-stake="{b["stake"]}" data-profit="{profit if profit is not None else 0}">'
+            f'<td>{html.escape(b["date"])}</td>'
+            f'<td>{html.escape(b["matchup"])}</td>'
+            f'<td>{html.escape(b["bet_type"])}</td>'
+            f'<td data-v="{b["odds"]}">{odds}</td>'
+            f'<td data-v="{b["stake"]}">{stake}</td>'
+            f'<td{result_cls}>{html.escape(b["result"])}</td>'
+            f'<td data-v="{profit if profit is not None else 0}"{profit_cls}>{profit_txt}</td>'
+            f"<td>—</td></tr>"
+        )
+    table = (
+        '<div class="stats-wrap"><table class="stats-table sortable" id="total-book-table">'
+        "<thead><tr>"
+        '<th data-sort="text">Date</th><th data-sort="text">Matchup</th>'
+        '<th data-sort="text">Type</th><th data-sort="num">Odds</th>'
+        '<th data-sort="num">Stake</th><th data-sort="text">Result</th>'
+        '<th data-sort="num">P/L</th><th data-sort="text">CLV</th>'
+        "</tr></thead>"
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+        '<p class="section-note" id="total-book-empty" hidden>No bets match these filters.</p>'
+    )
+    return (
+        '<h2 class="section-title">Total Book</h2>'
+        f'<p class="section-note">Every bet, all sports and both books, Oct 29 – {html.escape(as_of)}. '
+        "Pick one filter per row; filters combine, so FanDuel + NHL shows only FanDuel NHL bets. "
+        "Summary stats update to match the filters. Most recent first. Profit is cash profit "
+        "(FanCash pays profit only, stake not returned; bonus bets pay winnings only). "
+        "CLV tracking started Nov 8, no closing lines recorded yet for historical bets.</p>"
+        f"{filters}"
+        f"{stats}"
+        f"{table}"
+    )
+
+
 def tabs_nav(has_season, has_nhl_book=False, has_nfl_book=False, has_cbb_book=False):
-    """Daily | Season Stats | NHL Book | NFL Book | CBB Book buttons."""
+    """Daily | Season Stats | Total Book | NHL Book | NFL Book | CBB Book buttons."""
     btns = ['<button class="tab-btn active" data-tab="daily">Daily</button>']
     if has_season:
         btns.append('<button class="tab-btn" data-tab="season">Season Stats</button>')
+    if has_nhl_book or has_nfl_book or has_cbb_book:
+        btns.append('<button class="tab-btn" data-tab="totalbook">Total Book</button>')
     if has_nhl_book:
         btns.append('<button class="tab-btn" data-tab="book">NHL Book</button>')
     if has_nfl_book:
@@ -1127,6 +1355,13 @@ def main():
     cbb_book_container = (
         f'<div id="tab-cbbbook" hidden>\n{cbb_book_html}\n</div>' if cbb_book_html else ""
     )
+    total_book_html = total_book_section(
+        [("NHL", book), ("NFL", nfl_book), ("CBB", cbb_book)]
+    )
+    total_book_container = (
+        f'<div id="tab-totalbook" hidden>\n{total_book_html}\n</div>'
+        if total_book_html else ""
+    )
     out = PAGE.format(
         date=html.escape(data["date"]),
         cards=cards,
@@ -1136,7 +1371,7 @@ def main():
         nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
         tabs=tabs_nav(bool(season), bool(book_html), bool(nfl_book_html), bool(cbb_book_html)),
-        season_container=season_container + book_container + nfl_book_container + cbb_book_container,
+        season_container=season_container + total_book_container + book_container + nfl_book_container + cbb_book_container,
     )
     os.makedirs(os.path.dirname(dst) or ".", exist_ok=True)
     with open(dst, "w") as f:
