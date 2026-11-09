@@ -721,9 +721,9 @@ PAGE_JS = """<script>
   // Book Tracker toggle filters: pills toggle on/off, multiple per group
   // allowed. A row shows when its book is in the active Book set (or the
   // set is empty) AND its sport is in the active Sport set (or empty) AND
-  // its type is in the active Type set (or empty). All-off in a group =
-  // no filter for that group.
-  var bookFilters = {book: new Set(), sport: new Set(), kind: new Set()};
+  // its type is in the active Type set (or empty) AND its funds is in the
+  // active Funds set (or empty). All-off in a group = no filter for that group.
+  var bookFilters = {book: new Set(), sport: new Set(), kind: new Set(), funds: new Set()};
   function tbMoney(v) {
     return (v > 0 ? "+" : "") + "$" + v.toFixed(2);
   }
@@ -741,10 +741,12 @@ PAGE_JS = """<script>
     var rows = document.querySelectorAll("#total-book-table tbody tr");
     var bets = 0, won = 0, lost = 0, open = 0, staked = 0, profit = 0;
     var sN = 0, sP = 0, pN = 0, pP = 0, fdN = 0, fdP = 0, fanN = 0, fanP = 0, b3N = 0, b3P = 0;
+    var cashN = 0, cashP = 0, bonusN = 0, bonusP = 0;
     rows.forEach(function (tr) {
       var show = (!bookFilters.book.size || bookFilters.book.has(tr.getAttribute("data-book")))
         && (!bookFilters.sport.size || bookFilters.sport.has(tr.getAttribute("data-sport")))
-        && (!bookFilters.kind.size || bookFilters.kind.has(tr.getAttribute("data-kind")));
+        && (!bookFilters.kind.size || bookFilters.kind.has(tr.getAttribute("data-kind")))
+        && (!bookFilters.funds.size || bookFilters.funds.has(tr.getAttribute("data-funds")));
       tr.style.display = show ? "" : "none";
       if (!show) return;
       bets++;
@@ -763,6 +765,8 @@ PAGE_JS = """<script>
         if (bk === "FanDuel") { fdN++; fdP += prof; }
         else if (bk === "Fanatics") { fanN++; fanP += prof; }
         else if (bk === "Bet365") { b3N++; b3P += prof; }
+        if (tr.getAttribute("data-funds") === "cash") { cashN++; cashP += prof; }
+        else { bonusN++; bonusP += prof; }
       }
     });
     var settled = won + lost;
@@ -785,6 +789,8 @@ PAGE_JS = """<script>
     bd("tb-bd-fd", "FanDuel", fdN, fdP);
     bd("tb-bd-fan", "Fanatics", fanN, fanP);
     bd("tb-bd-b365", "Bet365", b3N, b3P);
+    bd("tb-bd-cash", "Cash", cashN, cashP);
+    bd("tb-bd-bonus", "Bonus", bonusN, bonusP);
     var empty = document.getElementById("total-book-empty");
     if (empty) empty.hidden = bets !== 0;
   }
@@ -1248,6 +1254,10 @@ def total_book_section(books):
     fd_profit = sum(b["profit"] for b in fd if b["profit"] is not None)
     fan_profit = sum(b["profit"] for b in fan if b["profit"] is not None)
     b365_profit = sum(b["profit"] for b in b365 if b["profit"] is not None)
+    cash = [b for b in settled if not b.get("is_bonus") and not b.get("is_fancash")]
+    bonus = [b for b in settled if b.get("is_bonus") or b.get("is_fancash")]
+    cash_profit = sum(b["profit"] for b in cash if b["profit"] is not None)
+    bonus_profit = sum(b["profit"] for b in bonus if b["profit"] is not None)
 
     def money(v):
         sign = "+" if v > 0 else ""
@@ -1280,6 +1290,10 @@ def total_book_section(books):
         + chip("kind", "single", "Singles")
         + chip("kind", "parlay", "Parlays &amp; SGPs")
         + "</div>"
+        '<div class="filter-group"><span class="filter-label">Funds</span>'
+        + chip("funds", "cash", "Cash")
+        + chip("funds", "bonus", "Bonus")
+        + "</div>"
         "</div>"
         '<p class="section-note">Tap a pill to include it, tap again to exclude it. '
         "Multiple pills per row can be on at once. Filters combine across rows, so FanDuel + NHL "
@@ -1302,11 +1316,14 @@ def total_book_section(books):
         f'<span class="book-breakdown-item" id="tb-bd-fd">FanDuel: {len(fd)} settled, <span class="{money_cls(fd_profit)}">{money(fd_profit)}</span></span>'
         f'<span class="book-breakdown-item" id="tb-bd-fan">Fanatics: {len(fan)} settled, <span class="{money_cls(fan_profit)}">{money(fan_profit)}</span></span>'
         f'<span class="book-breakdown-item" id="tb-bd-b365">Bet365: {len(b365)} settled, <span class="{money_cls(b365_profit)}">{money(b365_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-cash">Cash: {len(cash)} bets, <span class="{money_cls(cash_profit)}">{money(cash_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-bonus">Bonus: {len(bonus)} bets, <span class="{money_cls(bonus_profit)}">{money(bonus_profit)}</span></span>'
         "</div>"
     )
     rows = []
     for b in sorted(all_bets, key=lambda x: x["date"], reverse=True):
         kind = "parlay" if b["bet_type"] in ("Parlay", "SGP", "SGP+") else "single"
+        funds = "bonus" if (b.get("is_bonus") or b.get("is_fancash")) else "cash"
         odds = fmt_odds(b["odds"])
         stake = f'${b["stake"]:.2f}'
         if b.get("is_bonus"):
@@ -1327,7 +1344,7 @@ def total_book_section(books):
             result_cls = ' class="neg"'
         rows.append(
             f'<tr data-book="{html.escape(b["book"])}" data-sport="{b["_sport"]}" '
-            f'data-kind="{kind}" data-result="{html.escape(b["result"])}" '
+            f'data-kind="{kind}" data-funds="{funds}" data-result="{html.escape(b["result"])}" '
             f'data-stake="{b["stake"]}" data-profit="{profit if profit is not None else 0}">'
             f'<td>{html.escape(b["date"])}</td>'
             f'<td>{html.escape(b["matchup"])}</td>'
