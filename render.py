@@ -908,7 +908,15 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .leaders-board {{ margin-bottom: 16px; }}
 .leaders-board-title {{ margin: 0 0 10px; font-size: 15px; }}
 .leaders-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
-@media (max-width: 700px) {{ .leaders-grid {{ grid-template-columns: 1fr; }} }}
+@media (max-width: 700px) {{
+  .leaders-grid {{ gap: 8px; }}
+  .leader-cat {{ padding: 10px; }}
+  .leader-cat h4 {{ font-size: 13px; }}
+  .leader-list {{ font-size: 12px; }}
+  .leaders-board .leader-list li {{ display: block; }}
+  .leader-list .lr {{ display: inline; width: auto; }}
+  .leader-list b {{ margin-left: 6px; }}
+}}
 .leader-cat {{ background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--offense); border-radius: 12px; padding: 12px 14px; }}
 .leader-cat.tone-def {{ border-left-color: var(--defbar); }}
 .leader-cat h4 {{ margin: 0 0 8px; font-size: 14px; }}
