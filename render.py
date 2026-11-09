@@ -17,12 +17,19 @@ per game and the shots per game the opposing team allows.
 The League totals section lists all 32 teams with games played, average
 combined goals per game, and goal differential, season to date, sorted by
 avg total descending and sortable by clicking a column header.
-A Season Stats tab (second page tab, Daily is the default) shows all 32
+A Season Stats section inside the NHL Toolkit tab shows all 32
 teams across four switchable views — Overview, Offense, Defense & Goalies,
 Special Teams — with sortable columns, a team search box, percentile
 shading on the stat columns, a leaders strip, and a glossary. It reads
 season_stats.json (built by season_stats.py) when present; when the file
-is absent the tab is omitted and the page is the daily view only.
+is absent the section is omitted and the tab is the daily view only.
+The Book Tracker tab (the default) consolidates every bet from
+nhl_bets.json, nfl_bets.json and cbb_bets.json into one table with
+toggle-pill filters (Book / Sport / Type, multiple per group, AND
+across groups) and live summary stats. The NFL Toolkit tab shows the
+weekly games, a 32-team stats table, and a matchup projector with a
+Kelly/EV calculator, from nfl_teams.json (built by fetch_nfl_teams.py).
+The CBB Toolkit is a link to the separate CBB page.
 """
 import html
 import json
@@ -695,23 +702,28 @@ PAGE_JS = """<script>
     });
   });
 
-  // Page tabs: Daily | Season Stats | Total Book | NHL Book | NFL Book | CBB Book.
+  // Page tabs: Book Tracker | NHL Toolkit | NFL Toolkit. CBB Toolkit is a
+  // link to the separate CBB page, not a tab.
   var tabBtns = document.querySelectorAll("[data-tab]");
+  var tabIds = ["booktracker", "nhltool", "nfltool"];
   tabBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
       var tab = btn.getAttribute("data-tab");
       tabBtns.forEach(function (b) { b.classList.remove("active"); });
       btn.classList.add("active");
-      document.getElementById("tab-daily").hidden = tab !== "daily";
-      ["season", "totalbook", "book", "nflbook", "cbbbook"].forEach(function (t) {
+      tabIds.forEach(function (t) {
         var el = document.getElementById("tab-" + t);
         if (el) el.hidden = tab !== t;
       });
     });
   });
 
-  // Total Book filters: one pick per group (Book / Sport / Type), combined with AND.
-  var bookFilters = {book: "all", sport: "all", kind: "all"};
+  // Book Tracker toggle filters: pills toggle on/off, multiple per group
+  // allowed. A row shows when its book is in the active Book set (or the
+  // set is empty) AND its sport is in the active Sport set (or empty) AND
+  // its type is in the active Type set (or empty). All-off in a group =
+  // no filter for that group.
+  var bookFilters = {book: new Set(), sport: new Set(), kind: new Set()};
   function tbMoney(v) {
     return (v > 0 ? "+" : "") + "$" + v.toFixed(2);
   }
@@ -728,11 +740,11 @@ PAGE_JS = """<script>
   function applyBookFilters() {
     var rows = document.querySelectorAll("#total-book-table tbody tr");
     var bets = 0, won = 0, lost = 0, open = 0, staked = 0, profit = 0;
-    var sN = 0, sP = 0, pN = 0, pP = 0, fdN = 0, fdP = 0, fanN = 0, fanP = 0;
+    var sN = 0, sP = 0, pN = 0, pP = 0, fdN = 0, fdP = 0, fanN = 0, fanP = 0, b3N = 0, b3P = 0;
     rows.forEach(function (tr) {
-      var show = (bookFilters.book === "all" || tr.getAttribute("data-book") === bookFilters.book)
-        && (bookFilters.sport === "all" || tr.getAttribute("data-sport") === bookFilters.sport)
-        && (bookFilters.kind === "all" || tr.getAttribute("data-kind") === bookFilters.kind);
+      var show = (!bookFilters.book.size || bookFilters.book.has(tr.getAttribute("data-book")))
+        && (!bookFilters.sport.size || bookFilters.sport.has(tr.getAttribute("data-sport")))
+        && (!bookFilters.kind.size || bookFilters.kind.has(tr.getAttribute("data-kind")));
       tr.style.display = show ? "" : "none";
       if (!show) return;
       bets++;
@@ -747,8 +759,10 @@ PAGE_JS = """<script>
         profit += prof;
         if (tr.getAttribute("data-kind") === "single") { sN++; sP += prof; }
         else { pN++; pP += prof; }
-        if (tr.getAttribute("data-book") === "FanDuel") { fdN++; fdP += prof; }
-        else { fanN++; fanP += prof; }
+        var bk = tr.getAttribute("data-book");
+        if (bk === "FanDuel") { fdN++; fdP += prof; }
+        else if (bk === "Fanatics") { fanN++; fanP += prof; }
+        else if (bk === "Bet365") { b3N++; b3P += prof; }
       }
     });
     var settled = won + lost;
@@ -770,16 +784,21 @@ PAGE_JS = """<script>
     bd("tb-bd-parlays", "Parlays/SGPs", pN, pP);
     bd("tb-bd-fd", "FanDuel", fdN, fdP);
     bd("tb-bd-fan", "Fanatics", fanN, fanP);
+    bd("tb-bd-b365", "Bet365", b3N, b3P);
     var empty = document.getElementById("total-book-empty");
     if (empty) empty.hidden = bets !== 0;
   }
-  document.querySelectorAll("#tab-totalbook .filter-chip").forEach(function (chip) {
+  document.querySelectorAll("#tab-booktracker .filter-chip").forEach(function (chip) {
     chip.addEventListener("click", function () {
       var g = chip.getAttribute("data-filter-group");
-      bookFilters[g] = chip.getAttribute("data-filter-value");
-      document.querySelectorAll('#tab-totalbook .filter-chip[data-filter-group="' + g + '"]').forEach(function (c) {
-        c.classList.toggle("active", c === chip);
-      });
+      var v = chip.getAttribute("data-filter-value");
+      if (bookFilters[g].has(v)) {
+        bookFilters[g].delete(v);
+        chip.classList.remove("active");
+      } else {
+        bookFilters[g].add(v);
+        chip.classList.add("active");
+      }
       applyBookFilters();
     });
   });
@@ -801,12 +820,135 @@ PAGE_JS = """<script>
   if (search) {
     search.addEventListener("input", function () {
       var q = search.value.trim().toLowerCase();
-      document.querySelectorAll("#tab-season tbody tr").forEach(function (tr) {
+      document.querySelectorAll("#tab-nhltool .season-view tbody tr").forEach(function (tr) {
         var name = tr.getAttribute("data-team") || "";
         tr.style.display = (!q || name.indexOf(q) !== -1) ? "" : "none";
       });
     });
   }
+
+  // NFL team search: filters the NFL stats table by team name.
+  var nflSearch = document.getElementById("nfl-search");
+  if (nflSearch) {
+    nflSearch.addEventListener("input", function () {
+      var q = nflSearch.value.trim().toLowerCase();
+      document.querySelectorAll("#nfl-stats-table tbody tr").forEach(function (tr) {
+        var name = tr.getAttribute("data-team") || "";
+        tr.style.display = (!q || name.indexOf(q) !== -1) ? "" : "none";
+      });
+    });
+  }
+
+  // NFL matchup projector. Expected points for A = average of A's points
+  // scored per game and B's points allowed per game (and vice versa).
+  // Home field is +1.5 points. Win probability is a normal CDF on the
+  // projected margin with a 13.5-point standard deviation.
+  var nflProjA = document.getElementById("nflProjA");
+  var nflProjB = document.getElementById("nflProjB");
+  if (nflProjA && typeof NFL_TEAMS !== "undefined") {
+    var nflSite = "N";
+    function normCdf(x) {
+      var t = 1 / (1 + 0.2316419 * Math.abs(x));
+      var d = 0.3989423 * Math.exp(-x * x / 2);
+      var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+      return x > 0 ? 1 - p : p;
+    }
+    function fairOdds(p) {
+      if (p >= 0.5) return Math.round(-100 * p / (1 - p));
+      return Math.round(100 * (1 - p) / p);
+    }
+    function fmtOdds(v) { return (v > 0 ? "+" : "") + v; }
+    function nflTeam(abbr) {
+      for (var i = 0; i < NFL_TEAMS.length; i++) {
+        if (NFL_TEAMS[i].abbr === abbr) return NFL_TEAMS[i];
+      }
+      return null;
+    }
+    function nflProject() {
+      var a = nflTeam(nflProjA.value), b = nflTeam(nflProjB.value);
+      if (!a || !b) return;
+      var expA = (a.pts_for_pg + b.pts_against_pg) / 2;
+      var expB = (b.pts_for_pg + a.pts_against_pg) / 2;
+      if (nflSite === "A") expA += 1.5;
+      else if (nflSite === "B") expB += 1.5;
+      var margin = expA - expB;
+      var total = expA + expB;
+      var pA = normCdf(margin / 13.5);
+      var pB = 1 - pA;
+      document.getElementById("nflScoreLine").textContent =
+        a.name + " " + expA.toFixed(1) + " — " + expB.toFixed(1) + " " + b.name;
+      document.getElementById("nflWpA").style.width = (pA * 100).toFixed(1) + "%";
+      document.getElementById("nflWpB").style.width = (pB * 100).toFixed(1) + "%";
+      document.getElementById("nflWpLabA").textContent = a.abbr + " " + (pA * 100).toFixed(1) + "%";
+      document.getElementById("nflWpLabB").textContent = b.abbr + " " + (pB * 100).toFixed(1) + "%";
+      var spreadTxt = margin >= 0
+        ? a.abbr + " -" + Math.abs(margin).toFixed(1)
+        : b.abbr + " -" + Math.abs(margin).toFixed(1);
+      document.getElementById("nflProjMeta").innerHTML =
+        "Projected spread: <b>" + spreadTxt + "</b> &middot; Projected total: <b>" + total.toFixed(1) + "</b>"
+        + " &middot; Fair ML: " + a.abbr + " " + fmtOdds(fairOdds(pA)) + " / " + b.abbr + " " + fmtOdds(fairOdds(pB))
+        + " &middot; Home field +1.5 pts" + (nflSite === "N" ? " (neutral site — none applied)" : "");
+      function det(t) {
+        return "<b>" + t.abbr + "</b> " + t.pts_for_pg.toFixed(1) + " PF/G &middot; " + t.pts_against_pg.toFixed(1) + " PA/G"
+          + " &middot; " + t.yds_per_play.toFixed(2) + " yds/play &middot; " + t.third_down_pct.toFixed(0) + "% 3rd down"
+          + " &middot; " + t.redzone_td_pct.toFixed(0) + "% RZ TD &middot; TO diff " + (t.turnover_diff > 0 ? "+" : "") + t.turnover_diff;
+      }
+      document.getElementById("nflDetailRows").innerHTML =
+        "<div>" + det(a) + "</div><div>" + det(b) + "</div>";
+    }
+    [nflProjA, nflProjB].forEach(function (el) {
+      el.addEventListener("change", nflProject);
+    });
+    if (nflProjB.options.length > 1) nflProjB.selectedIndex = 1;
+    document.querySelectorAll("[data-nfl-loc]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        nflSite = btn.getAttribute("data-nfl-loc");
+        document.querySelectorAll("[data-nfl-loc]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+        });
+        nflProject();
+      });
+    });
+    nflProject();
+  }
+
+  // NFL Kelly / EV calculator (same math as the CBB calculator).
+  function nflKelly() {
+    var pEl = document.getElementById("nkProb");
+    if (!pEl) return;
+    var p = parseFloat(pEl.value) / 100;
+    var odds = parseFloat(document.getElementById("nkOdds").value);
+    var bank = parseFloat(document.getElementById("nkBank").value);
+    var b = odds > 0 ? odds / 100 : 100 / Math.abs(odds);
+    var q = 1 - p;
+    var ev = p * b - q;
+    var f = (b * p - q) / b;
+    document.getElementById("nkEv").textContent = (ev >= 0 ? "+$" : "-$") + Math.abs(ev).toFixed(2);
+    document.getElementById("nkEdge").textContent = ev >= 0 ? "positive edge" : "negative edge";
+    function set(idPct, idAmt, frac) {
+      var pct = Math.max(0, f * frac) * 100;
+      document.getElementById(idPct).textContent = pct.toFixed(1) + "%";
+      document.getElementById(idAmt).textContent = "$" + (bank * Math.max(0, f * frac)).toFixed(2);
+    }
+    set("nkFullPct", "nkFullAmt", 1);
+    set("nkHalfPct", "nkHalfAmt", 0.5);
+    set("nkQtrPct", "nkQtrAmt", 0.25);
+    var msg = document.getElementById("nkMsg");
+    if (ev < 0) {
+      msg.hidden = false;
+      msg.textContent = "Negative expected value at this price, so Kelly says don't bet. The model needs a bigger edge than the market is offering.";
+    } else {
+      msg.hidden = true;
+    }
+  }
+  ["nkProb", "nkOdds", "nkBank"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", nflKelly);
+      el.addEventListener("change", nflKelly);
+    }
+  });
+  nflKelly();
 })();
 </script>"""
 
@@ -831,7 +973,7 @@ PAGE = """<!DOCTYPE html>
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-<title>NHL + NFL Matchup Chart — {date}</title>
+<title>Book Tracker — {date}</title>
 <style>
 :root {{ --bg: #fafafa; --card: #ffffff; --text: #171717; --muted: #737373; --border: #e5e5e5; --accent: #2f5fd0; --defense: #64748b; --offense: #e8912d; --defbar: #2f5fd0; --chip: #f0f0f0; --chip-text: #404040; }}
 @media (prefers-color-scheme: dark) {{
@@ -845,6 +987,47 @@ h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }}
 .tabs {{ display: flex; gap: 8px; margin: 0 0 20px; }}
 .tab-btn {{ padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }}
 .tab-btn.active {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
+.tab-link {{ text-decoration: none; display: inline-block; }}
+.proj {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }}
+.proj-grid {{ display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }}
+.proj label {{ display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }}
+.proj select {{ width: 100%; font: inherit; font-size: 15px; color: var(--text); background: var(--card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; }}
+.vs {{ font-weight: 700; font-size: 20px; color: var(--muted); padding-bottom: 8px; }}
+.loc-row {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }}
+.loc-row .lab {{ font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }}
+.seg {{ display: flex; gap: 6px; }}
+.seg button {{ padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }}
+.seg button[aria-pressed="true"] {{ background: var(--text); color: var(--bg); border-color: var(--text); }}
+.proj-out {{ margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }}
+.score-line {{ font-size: clamp(20px, 4vw, 28px); font-weight: 700; letter-spacing: -0.01em; }}
+.proj-meta {{ display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; color: var(--muted); font-size: 14px; }}
+.proj-meta b {{ color: var(--text); }}
+.wp-bar {{ display: flex; height: 10px; margin-top: 12px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }}
+.wp-bar .a {{ background: var(--accent); }}
+.wp-bar .b {{ background: var(--muted); }}
+.wp-lab {{ display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-top: 4px; }}
+.ff {{ margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }}
+.ff-head {{ font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }}
+.ff-note {{ margin: 9px 0 0; font-size: 13px; color: var(--muted); }}
+.calc .calc-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }}
+.calc label {{ display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }}
+.calc input[type="number"] {{ font: inherit; font-size: 15px; color: var(--text); width: 100%; background: var(--card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-variant-numeric: tabular-nums; }}
+.calc-out {{ margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }}
+.ev-line {{ display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; font-size: 14px; color: var(--muted); }}
+.ev-line .ev-big {{ font-size: 30px; font-weight: 700; line-height: 1; color: var(--text); }}
+.k-rows {{ margin-top: 12px; border-top: 1px solid var(--border); }}
+.k-row {{ display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }}
+.k-row .k-name {{ font-weight: 600; font-size: 14.5px; }}
+.k-row .k-name span {{ display: block; font-weight: 500; font-size: 12px; color: var(--muted); }}
+.k-row .k-pct {{ font-size: 14.5px; color: var(--muted); text-align: right; min-width: 86px; }}
+.k-row .k-amt {{ font-size: 22px; font-weight: 700; min-width: 76px; text-align: right; }}
+.k-head {{ display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; padding: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }}
+.k-head span:nth-child(2) {{ min-width: 86px; text-align: right; }}
+.k-head span:nth-child(3) {{ min-width: 76px; text-align: right; }}
+.calc-msg {{ margin-top: 12px; font-size: 14px; color: var(--muted); }}
+.calc-note {{ margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); line-height: 1.5; }}
+.calc-note strong {{ color: var(--text); }}
+@media (max-width: 560px) {{ .calc .calc-grid {{ grid-template-columns: 1fr 1fr; }} .proj-grid {{ grid-template-columns: 1fr; }} .vs {{ display: none; }} }}
 .guide {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; line-height: 1.5; }}
 .guide h2 {{ margin: 0 0 6px; font-size: 15px; }}
 .guide p {{ margin: 4px 0; color: var(--muted); font-size: 14px; }}
@@ -986,17 +1169,19 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
     <a class="nav-link" href="cbb/index.html">CBB</a>
   </div>
 </nav>
-<h1>NHL + NFL Matchup Chart</h1>
-<p class="subtitle">{date} &middot; NHL today, NFL this week &middot; rebuilt every morning</p>
+<h1>Book Tracker</h1>
+<p class="subtitle">{date} &middot; your bets, NHL + NFL + CBB toolkits &middot; rebuilt every morning</p>
 {tabs}
-<div id="tab-daily">
+<div id="tab-booktracker">
+{total_book_html}
+{bet_types}
+</div>
+<div id="tab-nhltool" hidden>
 {picks_section}
 <div class="grid">
 {cards}
 </div>
 {league_section}
-{nfl_section}
-{bet_types}
 <div class="guide">
 <h2>How to read it</h2>
 <p>Each card pairs offense against the opposing defense. Every bar is the team's percentile (0-100) on a bordered track: the right edge is 100%, and the tick in the middle is league average (50th percentile). Longer is always better, for offense and defense alike, so a bar past the tick is above average. Amber is goals scored per game, blue is goals allowed per game, with each team's raw number and league rank next to its bar.</p>
@@ -1008,8 +1193,11 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
 <p>SOG watch lists each team's top two shooters by shots on goal per game (minimum 5 games played) and the shots per game the opposing team allows.</p>
 <p>League totals lists every team's average combined goals per game and goal differential for the season, sortable by either column.</p>
 </div>
+{season_html}
 </div>
-{season_container}
+<div id="tab-nfltool" hidden>
+{nfl_toolkit_html}
+</div>
 <footer>
 <p>Snapshot of today's slate, rebuilt every morning with that day's games. Ranks: GF 1st is the most goals scored per game, GA 1st is the fewest goals allowed per game.</p>
 </footer>
@@ -1020,117 +1208,16 @@ footer {{ margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1
 """
 
 
-def book_section(book, title, note):
-    """Render a Book tab content, or "" when no bet data.
-
-    book is a bets json dict: as_of, bets (list). Shows summary
-    stats at top, then a sortable table of all bets, most recent first.
-    title is e.g. "NHL Book"; note is the subtitle line.
-    """
-    bets = (book or {}).get("bets") or []
-    if not bets:
-        return ""
-    as_of = book.get("as_of", "")
-    settled = [b for b in bets if b["result"] in ("Won", "Lost")]
-    won = [b for b in bets if b["result"] == "Won"]
-    lost = [b for b in bets if b["result"] == "Lost"]
-    open_bets = [b for b in bets if b["result"] == "Open"]
-    total_staked = sum(b["stake"] for b in settled)
-    total_profit = sum(b["profit"] for b in settled if b["profit"] is not None)
-    win_rate = len(won) / len(settled) * 100 if settled else 0
-    roi = total_profit / total_staked * 100 if total_staked else 0
-    singles = [b for b in settled if b["bet_type"] in ("ML", "PL", "Total", "Prop")]
-    parlays = [b for b in settled if b["bet_type"] in ("Parlay", "SGP", "SGP+")]
-    singles_profit = sum(b["profit"] for b in singles if b["profit"] is not None)
-    parlays_profit = sum(b["profit"] for b in parlays if b["profit"] is not None)
-    fd = [b for b in settled if b["book"] == "FanDuel"]
-    fan = [b for b in settled if b["book"] == "Fanatics"]
-    fd_profit = sum(b["profit"] for b in fd if b["profit"] is not None)
-    fan_profit = sum(b["profit"] for b in fan if b["profit"] is not None)
-
-    def money(v):
-        sign = "+" if v > 0 else ""
-        return f"{sign}${v:.2f}"
-
-    def money_cls(v):
-        if v is None:
-            return ""
-        return "pos" if v > 0 else ("neg" if v < 0 else "")
-
-    stats = (
-        '<div class="book-stats">'
-        f'<div class="book-stat"><span class="book-stat-label">Bets</span><span class="book-stat-value">{len(bets)}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Won</span><span class="book-stat-value">{len(won)}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Lost</span><span class="book-stat-value">{len(lost)}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Open</span><span class="book-stat-value">{len(open_bets)}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Win rate</span><span class="book-stat-value">{win_rate:.1f}%</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Staked</span><span class="book-stat-value">${total_staked:.2f}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">Profit/Loss</span><span class="book-stat-value {money_cls(total_profit)}">{money(total_profit)}</span></div>'
-        f'<div class="book-stat"><span class="book-stat-label">ROI</span><span class="book-stat-value {money_cls(roi)}">{roi:+.1f}%</span></div>'
-        "</div>"
-        '<div class="book-breakdown">'
-        f'<div class="book-breakdown-item">Singles: {len(singles)} bets, <span class="{money_cls(singles_profit)}">{money(singles_profit)}</span></div>'
-        f'<div class="book-breakdown-item">Parlays/SGPs: {len(parlays)} bets, <span class="{money_cls(parlays_profit)}">{money(parlays_profit)}</span></div>'
-        f'<div class="book-breakdown-item">FanDuel: {len(fd)} settled, <span class="{money_cls(fd_profit)}">{money(fd_profit)}</span></div>'
-        f'<div class="book-breakdown-item">Fanatics: {len(fan)} settled, <span class="{money_cls(fan_profit)}">{money(fan_profit)}</span></div>'
-        "</div>"
-    )
-    rows = []
-    for b in sorted(bets, key=lambda x: x["date"], reverse=True):
-        odds = fmt_odds(b["odds"])
-        stake = f'${b["stake"]:.2f}'
-        if b.get("is_bonus"):
-            stake += " (Bonus)"
-        elif b.get("is_fancash"):
-            stake += " (FanCash)"
-        profit = b.get("profit")
-        if profit is None:
-            profit_txt = "—"
-            profit_cls = ""
-        else:
-            profit_txt = money(profit)
-            profit_cls = f' class="{money_cls(profit)}"'
-        result_cls = ""
-        if b["result"] == "Won":
-            result_cls = ' class="pos"'
-        elif b["result"] == "Lost":
-            result_cls = ' class="neg"'
-        rows.append(
-            f'<tr><td>{html.escape(b["date"])}</td>'
-            f'<td>{html.escape(b["matchup"])}</td>'
-            f'<td>{html.escape(b["bet_type"])}</td>'
-            f'<td data-v="{b["odds"]}">{odds}</td>'
-            f'<td data-v="{b["stake"]}">{stake}</td>'
-            f'<td{result_cls}>{html.escape(b["result"])}</td>'
-            f'<td data-v="{profit if profit is not None else 0}"{profit_cls}>{profit_txt}</td>'
-            f"<td>—</td></tr>"
-        )
-    table = (
-        '<div class="stats-wrap"><table class="stats-table sortable" id="book-table">'
-        "<thead><tr>"
-        '<th data-sort="text">Date</th><th data-sort="text">Matchup</th>'
-        '<th data-sort="text">Type</th><th data-sort="num">Odds</th>'
-        '<th data-sort="num">Stake</th><th data-sort="text">Result</th>'
-        '<th data-sort="num">P/L</th><th data-sort="text">CLV</th>'
-        "</tr></thead>"
-        f'<tbody>{"".join(rows)}</tbody></table></div>'
-    )
-    return (
-        f'<h2 class="section-title">{html.escape(title)}</h2>'
-        f'<p class="section-note">{note} Most recent first. Profit is cash profit (FanCash pays profit only, stake not returned; '
-        "bonus bets pay winnings only). CLV tracking started Nov 8, no closing lines recorded yet "
-        "for historical bets.</p>"
-        f"{stats}"
-        f"{table}"
-    )
-
 
 def total_book_section(books):
-    """Render a unified Total Book tab: all sports combined, with filter chips.
+    """Render the Book Tracker tab: all sports combined, with toggle filters.
 
-    books is a list of (sport, bets-json-dict). Filters combine with AND
-    logic across groups (book / sport / type); summary stats and breakdown
-    update live in JS from the rows' data attributes.
+    books is a list of (sport, bets-json-dict). Filters are toggle pills:
+    multiple per group can be active; a row shows when its book is in the
+    active Book set (or the set is empty) AND its sport is in the active
+    Sport set (or empty) AND its type is in the active Type set (or empty).
+    Summary stats and breakdown update live in JS from the rows' data
+    attributes.
     """
     all_bets = []
     for sport, book in books:
@@ -1157,8 +1244,10 @@ def total_book_section(books):
     parlays_profit = sum(b["profit"] for b in parlays if b["profit"] is not None)
     fd = [b for b in settled if b["book"] == "FanDuel"]
     fan = [b for b in settled if b["book"] == "Fanatics"]
+    b365 = [b for b in settled if b["book"] == "Bet365"]
     fd_profit = sum(b["profit"] for b in fd if b["profit"] is not None)
     fan_profit = sum(b["profit"] for b in fan if b["profit"] is not None)
+    b365_profit = sum(b["profit"] for b in b365 if b["profit"] is not None)
 
     def money(v):
         sign = "+" if v > 0 else ""
@@ -1169,32 +1258,32 @@ def total_book_section(books):
             return ""
         return "pos" if v > 0 else ("neg" if v < 0 else "")
 
-    def chip(group, value, label, active=False):
-        cls = "filter-chip active" if active else "filter-chip"
+    def chip(group, value, label):
         return (
-            f'<button class="{cls}" data-filter-group="{group}" '
+            f'<button class="filter-chip" data-filter-group="{group}" '
             f'data-filter-value="{value}">{label}</button>'
         )
 
     filters = (
         '<div class="book-filters">'
         '<div class="filter-group"><span class="filter-label">Book</span>'
-        + chip("book", "all", "All", True)
         + chip("book", "FanDuel", "FanDuel")
         + chip("book", "Fanatics", "Fanatics")
+        + chip("book", "Bet365", "Bet365")
         + "</div>"
         '<div class="filter-group"><span class="filter-label">Sport</span>'
-        + chip("sport", "all", "All", True)
         + chip("sport", "NHL", "NHL")
         + chip("sport", "NFL", "NFL")
         + chip("sport", "CBB", "CBB")
         + "</div>"
         '<div class="filter-group"><span class="filter-label">Type</span>'
-        + chip("kind", "all", "All", True)
         + chip("kind", "single", "Singles")
         + chip("kind", "parlay", "Parlays &amp; SGPs")
         + "</div>"
         "</div>"
+        '<p class="section-note">Tap a pill to include it, tap again to exclude it. '
+        "Multiple pills per row can be on at once. Filters combine across rows, so FanDuel + NHL "
+        "shows only FanDuel NHL bets. With nothing selected in a row, that row does not filter.</p>"
     )
     stats = (
         '<div class="book-stats">'
@@ -1212,6 +1301,7 @@ def total_book_section(books):
         f'<span class="book-breakdown-item" id="tb-bd-parlays">Parlays/SGPs: {len(parlays)} bets, <span class="{money_cls(parlays_profit)}">{money(parlays_profit)}</span></span>'
         f'<span class="book-breakdown-item" id="tb-bd-fd">FanDuel: {len(fd)} settled, <span class="{money_cls(fd_profit)}">{money(fd_profit)}</span></span>'
         f'<span class="book-breakdown-item" id="tb-bd-fan">Fanatics: {len(fan)} settled, <span class="{money_cls(fan_profit)}">{money(fan_profit)}</span></span>'
+        f'<span class="book-breakdown-item" id="tb-bd-b365">Bet365: {len(b365)} settled, <span class="{money_cls(b365_profit)}">{money(b365_profit)}</span></span>'
         "</div>"
     )
     rows = []
@@ -1260,10 +1350,9 @@ def total_book_section(books):
         '<p class="section-note" id="total-book-empty" hidden>No bets match these filters.</p>'
     )
     return (
-        '<h2 class="section-title">Total Book</h2>'
-        f'<p class="section-note">Every bet, all sports and both books, Oct 29 – {html.escape(as_of)}. '
-        "Pick one filter per row; filters combine, so FanDuel + NHL shows only FanDuel NHL bets. "
-        "Summary stats update to match the filters. Most recent first. Profit is cash profit "
+        '<h2 class="section-title">Book Tracker</h2>'
+        f'<p class="section-note">Every bet, all sports and all three books, Oct 29 – {html.escape(as_of)}. '
+        "Most recent first. Profit is cash profit "
         "(FanCash pays profit only, stake not returned; bonus bets pay winnings only). "
         "CLV tracking started Nov 8, no closing lines recorded yet for historical bets.</p>"
         f"{filters}"
@@ -1272,21 +1361,178 @@ def total_book_section(books):
     )
 
 
-def tabs_nav(has_season, has_nhl_book=False, has_nfl_book=False, has_cbb_book=False):
-    """Daily | Season Stats | Total Book | NHL Book | NFL Book | CBB Book buttons."""
-    btns = ['<button class="tab-btn active" data-tab="daily">Daily</button>']
-    if has_season:
-        btns.append('<button class="tab-btn" data-tab="season">Season Stats</button>')
-    if has_nhl_book or has_nfl_book or has_cbb_book:
-        btns.append('<button class="tab-btn" data-tab="totalbook">Total Book</button>')
-    if has_nhl_book:
-        btns.append('<button class="tab-btn" data-tab="book">NHL Book</button>')
-    if has_nfl_book:
-        btns.append('<button class="tab-btn" data-tab="nflbook">NFL Book</button>')
-    if has_cbb_book:
-        btns.append('<button class="tab-btn" data-tab="cbbbook">CBB Book</button>')
-    if len(btns) == 1:
+def nfl_toolkit_section(nfl, teams_data):
+    """Render the NFL Toolkit tab: weekly games, team stats, matchup projector,
+    and a Kelly/EV calculator.
+
+    nfl is the nfl.json dict (weekly games). teams_data is the nfl_teams.json
+    dict (32 teams with offensive efficiency stats + points for/against).
+    The projector models expected points as the average of a team's points
+    scored per game and the opponent's points allowed per game, with +1.5
+    for home field. Returns "" when there is no team data.
+    """
+    teams = (teams_data or {}).get("teams") or []
+    if not teams:
         return ""
+    as_of = teams_data.get("as_of", "")
+
+    def f1(v):
+        return f"{v:.1f}" if v is not None else "—"
+
+    def f2(v):
+        return f"{v:.2f}" if v is not None else "—"
+
+    def fi(v):
+        return f"{int(v):+d}" if v is not None else "—"
+
+    rows = []
+    for t in sorted(teams, key=lambda x: x["pts_for_pg"], reverse=True):
+        rows.append(
+            f'<tr data-team="{html.escape((t["name"] + " " + t["abbr"]).lower())}">'
+            f'<td>{html.escape(t["abbr"])}</td>'
+            f'<td>{html.escape(t["record"])}</td>'
+            f'<td class="num" data-v="{t["pts_for_pg"]}">{f1(t["pts_for_pg"])}</td>'
+            f'<td class="num" data-v="{t["pts_against_pg"]}">{f1(t["pts_against_pg"])}</td>'
+            f'<td class="num" data-v="{t["diff_pg"]}">{fi(t["diff_pg"])}</td>'
+            f'<td class="num" data-v="{t["yds_per_play"]}">{f2(t["yds_per_play"])}</td>'
+            f'<td class="num" data-v="{t["pass_yds_pg"]}">{f1(t["pass_yds_pg"])}</td>'
+            f'<td class="num" data-v="{t["pass_ypa"]}">{f2(t["pass_ypa"])}</td>'
+            f'<td class="num" data-v="{t["rush_yds_pg"]}">{f1(t["rush_yds_pg"])}</td>'
+            f'<td class="num" data-v="{t["rush_ypa"]}">{f2(t["rush_ypa"])}</td>'
+            f'<td class="num" data-v="{t["plays_pg"]}">{f1(t["plays_pg"])}</td>'
+            f'<td class="num" data-v="{t["third_down_pct"]}">{f1(t["third_down_pct"])}%</td>'
+            f'<td class="num" data-v="{t["redzone_td_pct"]}">{f1(t["redzone_td_pct"])}%</td>'
+            f'<td class="num" data-v="{t["turnover_diff"]}">{fi(t["turnover_diff"])}</td>'
+            f'<td class="num" data-v="{t["qbr"]}">{f1(t["qbr"])}</td>'
+            "</tr>"
+        )
+    stats_table = (
+        '<h2 class="section-title">Team stats</h2>'
+        f'<p class="section-note">All 32 teams, season to date through {html.escape(str(as_of))}. '
+        "Sorted by points scored per game; click a column header to sort.</p>"
+        '<input id="nfl-search" class="season-search" type="search" '
+        'placeholder="Search teams…" autocomplete="off">'
+        '<div class="stats-wrap"><table class="stats-table sortable" id="nfl-stats-table">'
+        "<thead><tr>"
+        '<th data-sort="text">Team</th><th data-sort="text">Record</th>'
+        '<th data-sort="num" class="sorted-desc">PF/G</th><th data-sort="num">PA/G</th>'
+        '<th data-sort="num">Diff/G</th><th data-sort="num">Yds/Play</th>'
+        '<th data-sort="num">Pass Yds/G</th><th data-sort="num">Pass YPA</th>'
+        '<th data-sort="num">Rush Yds/G</th><th data-sort="num">Rush YPA</th>'
+        '<th data-sort="num">Plays/G</th><th data-sort="num">3rd %</th>'
+        '<th data-sort="num">RZ TD %</th><th data-sort="num">TO Diff</th>'
+        '<th data-sort="num">QBR</th>'
+        "</tr></thead>"
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+    )
+
+    opts = "".join(
+        f'<option value="{html.escape(t["abbr"])}">{html.escape(t["name"])}</option>'
+        for t in sorted(teams, key=lambda x: x["name"])
+    )
+    projector = (
+        '<h2 class="section-title">Matchup Projector</h2>'
+        '<p class="section-note">Projects any pairing from the ratings above: expected points for '
+        "each side are the average of its points scored per game and the opponent's points allowed "
+        "per game, with +1.5 for home field. Win probability is a normal model on the projected "
+        "margin (13.5-point standard deviation).</p>"
+        '<section class="proj" aria-label="NFL matchup projector">'
+        '<div class="proj-grid">'
+        '<div><label for="nflProjA">Team A</label>'
+        f'<select id="nflProjA">{opts}</select></div>'
+        '<div class="vs">VS</div>'
+        '<div><label for="nflProjB">Team B</label>'
+        f'<select id="nflProjB">{opts}</select></div>'
+        "</div>"
+        '<div class="loc-row"><span class="lab">Site</span>'
+        '<div class="seg" role="group" aria-label="Game site">'
+        '<button type="button" data-nfl-loc="N" aria-pressed="true">Neutral</button>'
+        '<button type="button" data-nfl-loc="A" aria-pressed="false">Team A home</button>'
+        '<button type="button" data-nfl-loc="B" aria-pressed="false">Team B home</button>'
+        "</div></div>"
+        '<div class="proj-out" id="nflProjOut">'
+        '<div class="score-line" id="nflScoreLine"></div>'
+        '<div class="wp-bar"><div class="a" id="nflWpA"></div><div class="b" id="nflWpB"></div></div>'
+        '<div class="wp-lab"><span id="nflWpLabA"></span><span id="nflWpLabB"></span></div>'
+        '<div class="proj-meta" id="nflProjMeta"></div>'
+        '<div class="ff" id="nflDetailBox">'
+        '<div class="ff-head">Matchup detail</div>'
+        '<div id="nflDetailRows"></div>'
+        '<p class="ff-note">PF/G points scored per game &middot; PA/G points allowed per game &middot; '
+        "3rd down conversion % &middot; RZ TD red-zone touchdown % &middot; TO diff takeaways minus giveaways.</p>"
+        "</div></div></section>"
+    )
+    kelly = (
+        '<h2 class="section-title">Kelly / EV Calculator</h2>'
+        '<p class="section-note">Turn a model win probability and the price on offer into an expected value and a stake size.</p>'
+        '<section class="proj calc" aria-label="Kelly and expected value staking calculator">'
+        '<div class="calc-grid">'
+        '<div><label for="nkProb">Model win prob %</label>'
+        '<input type="number" id="nkProb" min="1" max="99" step="0.5" value="56" inputmode="decimal"></div>'
+        '<div><label for="nkOdds">American odds</label>'
+        '<input type="number" id="nkOdds" step="5" value="-110" inputmode="numeric"></div>'
+        '<div><label for="nkBank">Bankroll $</label>'
+        '<input type="number" id="nkBank" min="0" step="10" value="100" inputmode="decimal"></div>'
+        "</div>"
+        '<div class="calc-out" id="nkOut">'
+        '<div class="ev-line"><span>Expected value per $1 staked</span>'
+        '<span class="ev-big" id="nkEv">$0.00</span><span id="nkEdge"></span></div>'
+        '<div class="k-rows">'
+        '<div class="k-head"><span>Stake</span><span>% of bankroll</span><span>Bet</span></div>'
+        '<div class="k-row"><div class="k-name">Full Kelly<span>the growth-maximizing stake</span></div>'
+        '<div class="k-pct" id="nkFullPct">&mdash;</div><div class="k-amt" id="nkFullAmt">&mdash;</div></div>'
+        '<div class="k-row"><div class="k-name">Half Kelly<span>half the stake, most of the growth</span></div>'
+        '<div class="k-pct" id="nkHalfPct">&mdash;</div><div class="k-amt" id="nkHalfAmt">&mdash;</div></div>'
+        '<div class="k-row"><div class="k-name">Quarter Kelly<span>the conservative default</span></div>'
+        '<div class="k-pct" id="nkQtrPct">&mdash;</div><div class="k-amt" id="nkQtrAmt">&mdash;</div></div>'
+        "</div>"
+        '<p class="calc-msg" id="nkMsg" hidden></p>'
+        "</div>"
+        '<p class="calc-note"><strong>Full Kelly is aggressive.</strong> It assumes your win '
+        "probability is exactly right, and it swings hard when it isn't. Most bettors stake a "
+        "fraction of Kelly (quarter or half) to smooth the ride and leave room for model error.</p>"
+        "</section>"
+    )
+    data_js = (
+        "<script>var NFL_TEAMS = "
+        + json.dumps([
+            {
+                "abbr": t["abbr"],
+                "name": t["name"],
+                "pts_for_pg": t["pts_for_pg"],
+                "pts_against_pg": t["pts_against_pg"],
+                "yds_per_play": t["yds_per_play"],
+                "third_down_pct": t["third_down_pct"],
+                "redzone_td_pct": t["redzone_td_pct"],
+                "turnover_diff": t["turnover_diff"],
+            }
+            for t in teams
+        ])
+        + ";</script>"
+    )
+    return (
+        '<h2 class="section-title">NFL Toolkit</h2>'
+        f"{nfl_section(nfl)}"
+        f"{stats_table}"
+        f"{projector}"
+        f"{kelly}"
+        '<p class="glossary">PF/G points scored per game &middot; PA/G points allowed per game &middot; '
+        "Yds/Play total yards divided by total offensive plays &middot; Pass YPA net passing yards per "
+        "attempt &middot; Rush YPA rushing yards per attempt &middot; Plays/G offensive plays per game &middot; "
+        "3rd % third-down conversion rate &middot; RZ TD % red-zone touchdown rate &middot; TO Diff "
+        "takeaways minus giveaways &middot; QBR ESPN's Total QBR. Data: ESPN free APIs (team "
+        f"statistics + standings), pulled {html.escape(str(as_of))}.</p>"
+        f"{data_js}"
+    )
+
+
+def tabs_nav(has_nfl_toolkit=False):
+    """Book Tracker | NHL Toolkit | NFL Toolkit buttons, plus a CBB Toolkit link."""
+    btns = ['<button class="tab-btn active" data-tab="booktracker">Book Tracker</button>']
+    btns.append('<button class="tab-btn" data-tab="nhltool">NHL Toolkit</button>')
+    if has_nfl_toolkit:
+        btns.append('<button class="tab-btn" data-tab="nfltool">NFL Toolkit</button>')
+    btns.append('<a class="tab-btn tab-link" href="cbb/index.html">CBB Toolkit</a>')
     return f'<div class="tabs">{"".join(btns)}</div>'
 
 
@@ -1315,9 +1561,15 @@ def main():
     if not (season or {}).get("teams"):
         season = None
     season_html = season_section(season)
-    season_container = (
-        f'<div id="tab-season" hidden>\n{season_html}\n</div>' if season_html else ""
-    )
+    nfl_teams = None
+    nfl_teams_src = os.path.join(os.path.dirname(__file__), "nfl_teams.json")
+    if os.path.exists(nfl_teams_src):
+        try:
+            with open(nfl_teams_src) as f:
+                nfl_teams = json.load(f)
+        except Exception:
+            nfl_teams = None
+    nfl_toolkit_html = nfl_toolkit_section(nfl, nfl_teams)
     book = None
     book_src = os.path.join(os.path.dirname(__file__), "nhl_bets.json")
     if os.path.exists(book_src):
@@ -1326,13 +1578,6 @@ def main():
                 book = json.load(f)
         except Exception:
             book = None
-    book_html = book_section(
-        book, "NHL Book",
-        f"All NHL bets, FanDuel + Fanatics, Oct 29 – {html.escape(str((book or {}).get('as_of', '')))}.",
-    )
-    book_container = (
-        f'<div id="tab-book" hidden>\n{book_html}\n</div>' if book_html else ""
-    )
     nfl_book = None
     nfl_book_src = os.path.join(os.path.dirname(__file__), "nfl_bets.json")
     if os.path.exists(nfl_book_src):
@@ -1341,13 +1586,6 @@ def main():
                 nfl_book = json.load(f)
         except Exception:
             nfl_book = None
-    nfl_book_html = book_section(
-        nfl_book, "NFL Book",
-        f"All NFL bets, FanDuel + Fanatics, Oct 31 – {html.escape(str((nfl_book or {}).get('as_of', '')))}.",
-    )
-    nfl_book_container = (
-        f'<div id="tab-nflbook" hidden>\n{nfl_book_html}\n</div>' if nfl_book_html else ""
-    )
     cbb_book = None
     cbb_book_src = os.path.join(os.path.dirname(__file__), "cbb_bets.json")
     if os.path.exists(cbb_book_src):
@@ -1356,19 +1594,8 @@ def main():
                 cbb_book = json.load(f)
         except Exception:
             cbb_book = None
-    cbb_book_html = book_section(
-        cbb_book, "CBB Book",
-        f"All CBB bets, FanDuel only, Oct 31 – {html.escape(str((cbb_book or {}).get('as_of', '')))}.",
-    )
-    cbb_book_container = (
-        f'<div id="tab-cbbbook" hidden>\n{cbb_book_html}\n</div>' if cbb_book_html else ""
-    )
     total_book_html = total_book_section(
         [("NHL", book), ("NFL", nfl_book), ("CBB", cbb_book)]
-    )
-    total_book_container = (
-        f'<div id="tab-totalbook" hidden>\n{total_book_html}\n</div>'
-        if total_book_html else ""
     )
     out = PAGE.format(
         date=html.escape(data["date"]),
@@ -1376,20 +1603,25 @@ def main():
         picks_section=picks_section(),
         league_section=league_section(data),
         page_script=PAGE_JS,
-        nfl_section=nfl_section(nfl),
         bet_types=BET_TYPES,
-        tabs=tabs_nav(bool(season), bool(book_html), bool(nfl_book_html), bool(cbb_book_html)),
-        season_container=season_container + total_book_container + book_container + nfl_book_container + cbb_book_container,
+        tabs=tabs_nav(bool(nfl_toolkit_html)),
+        total_book_html=total_book_html,
+        season_html=season_html,
+        nfl_toolkit_html=nfl_toolkit_html,
     )
     os.makedirs(os.path.dirname(dst) or ".", exist_ok=True)
     with open(dst, "w") as f:
         f.write(out)
+    total_bets = (
+        (len(book["bets"]) if book else 0)
+        + (len(nfl_book["bets"]) if nfl_book else 0)
+        + (len(cbb_book["bets"]) if cbb_book else 0)
+    )
     print(f"Wrote {dst} with {len(data['games'])} NHL games"
           f" and {len(nfl['games']) if nfl else 0} NFL games"
           f" (season stats: {len(season['teams']) if season else 0} teams;"
-          f" NHL Book: {len(book['bets']) if book else 0} bets;"
-          f" NFL Book: {len(nfl_book['bets']) if nfl_book else 0} bets;"
-          f" CBB Book: {len(cbb_book['bets']) if cbb_book else 0} bets).")
+          f" NFL teams: {len(nfl_teams['teams']) if nfl_teams else 0};"
+          f" Book Tracker: {total_bets} bets).")
 
 
 if __name__ == "__main__":
