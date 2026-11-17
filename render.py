@@ -1229,6 +1229,23 @@ def total_book_section(books):
     for sport, book in books:
         for b in (book or {}).get("bets") or []:
             b = dict(b)
+            # Normalize the newer logging schema to the canonical one the
+            # table expects, so a future log entry can never break the build.
+            if "bet_type" not in b:
+                b["bet_type"] = {"Parlay": "Parlay", "SGP": "SGP",
+                                 "SGP+": "SGP+"}.get(b.get("type"), "Prop")
+                if b.get("type") in ("Single", "Straight"):
+                    desc = b.get("description", "")
+                    if "ML" in desc or "Money Line" in desc:
+                        b["bet_type"] = "ML"
+                    elif "-1.5" in desc or "+1.5" in desc:
+                        b["bet_type"] = "PL"
+                    elif "Over" in desc or "Under" in desc:
+                        b["bet_type"] = "Total"
+            if "matchup" not in b:
+                desc = b.get("description", "")
+                head = desc.split(": ", 1)[0] if ": " in desc else desc
+                b["matchup"] = head if "@" in head else desc
             b["_sport"] = sport
             all_bets.append(b)
     if not all_bets:
@@ -1236,7 +1253,7 @@ def total_book_section(books):
     as_of = max(
         (str((bk or {}).get("as_of", "")) for _, bk in books if bk), default=""
     )
-    settled = [b for b in all_bets if b["result"] in ("Won", "Lost")]
+    settled = [b for b in all_bets if b["result"] in ("Won", "Lost", "Cashed Out")]
     won = [b for b in all_bets if b["result"] == "Won"]
     lost = [b for b in all_bets if b["result"] == "Lost"]
     open_bets = [b for b in all_bets if b["result"] == "Open"]
@@ -1342,6 +1359,10 @@ def total_book_section(books):
             result_cls = ' class="pos"'
         elif b["result"] == "Lost":
             result_cls = ' class="neg"'
+        elif b["result"] == "Cashed Out":
+            result_cls = (' class="pos"' if (b.get("profit") or 0) > 0
+                          else ' class="neg"' if (b.get("profit") or 0) < 0
+                          else "")
         rows.append(
             f'<tr data-book="{html.escape(b["book"])}" data-sport="{b["_sport"]}" '
             f'data-kind="{kind}" data-funds="{funds}" data-result="{html.escape(b["result"])}" '
