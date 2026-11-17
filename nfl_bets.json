@@ -300,7 +300,9 @@
       "profit": -10.0,
       "result": "Lost",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "WAS @ NYG"
     },
     {
       "book": "Fanatics",
@@ -313,7 +315,9 @@
       "profit": -6.38,
       "result": "Lost",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "WAS @ NYG"
     },
     {
       "book": "Fanatics",
@@ -326,7 +330,9 @@
       "profit": -3.43,
       "result": "Lost",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "WAS @ NYG"
     },
     {
       "book": "Fanatics",
@@ -339,7 +345,9 @@
       "profit": -5.0,
       "result": "Lost",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "UTAH at ARIZ: Utah -3.5 + Utah -2.5 1H + Utah -0.5 1Q"
     },
     {
       "date": "2026-11-15",
@@ -354,7 +362,11 @@
       "fancash": 0.03,
       "result": "Won",
       "profit": 7.2,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "SGP",
+      "matchup": "SEA at LV SGP: Seattle ML + Anytime TD + Total Over 33.5",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -368,7 +380,11 @@
       "payout": 21.07,
       "result": "Lost",
       "profit": -3.01,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "SGP",
+      "matchup": "LAC at BAL SGP: Derrick Henry Anytime TD + BAL -2.5 + Over 37.5 + Hampton 30+ Rush Yds + Henry 60+ Rush Yds",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -383,7 +399,11 @@
       "result": "Cashed Out",
       "profit": 5.0,
       "funds": "cash",
-      "note": "All 4 legs hit (LAC won 23-20, total 43, Brissett 340 pass yds, Hampton 105 rush+rec). Cashed out for $10.00 (+100% on $5 stake) instead of riding to $37.50 ($53.75 w/ boost). Cash, confirmed by Cam Nov 16."
+      "note": "All 4 legs hit (LAC won 23-20, total 43, Brissett 340 pass yds, Hampton 105 rush+rec). Cashed out for $10.00 (+100% on $5 stake) instead of riding to $37.50 ($53.75 w/ boost). Cash, confirmed by Cam Nov 16.",
+      "bet_type": "SGP",
+      "matchup": "LAC at BAL SGP: LA Chargers +6.5 + Under 43.5 + Jacoby Brissett 200+ Pass Yds + Omarion Hampton Over 42.5 Rush & Rec Yds (50% profit boost)",
+      "is_bonus": false,
+      "is_fancash": false
     }
   ]
 }
