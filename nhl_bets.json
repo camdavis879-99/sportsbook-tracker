@@ -1416,7 +1416,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "NJD @ WPG"
     },
     {
       "book": "Bet365",
@@ -1429,7 +1431,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "ML",
+      "matchup": "Washington Capitals ML +105 @ Ottawa"
     },
     {
       "book": "Bet365",
@@ -1442,7 +1446,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "FLA/CBJ Over 5.5 + DET/STL Over 5.5"
     },
     {
       "book": "Bet365",
@@ -1455,7 +1461,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "ML",
+      "matchup": "Nashville Predators ML +120 @ LA Kings"
     },
     {
       "book": "Bet365",
@@ -1468,7 +1476,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "COL/TOR Over 5.5 + MIN/MTL Over 5.5 + NJD/WPG Over 5.5"
     },
     {
       "book": "Fanatics",
@@ -1481,7 +1491,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "COL/TOR Over 5.5 + MIN/MTL Over 5.5 + NJD/WPG Over 5.5"
     },
     {
       "book": "Bet365",
@@ -1494,7 +1506,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "PHI @ EDM"
     },
     {
       "book": "Bet365",
@@ -1507,7 +1521,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Total",
+      "matchup": "Pittsburgh/San Jose Under 6.5 +112"
     },
     {
       "book": "Bet365",
@@ -1520,7 +1536,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "NYR/CGY Over 5.5 + PHI/EDM Over 5.5"
     },
     {
       "book": "Bet365",
@@ -1533,7 +1551,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "EDM ML + NSH/ANA Over 5.5"
     },
     {
       "book": "Bet365",
@@ -1546,7 +1566,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "TB ML + NYR ML + EDM ML + PIT ML (4-leg favorites parlay)"
     },
     {
       "book": "Fanatics",
@@ -1559,7 +1581,9 @@
       "profit": 6.37,
       "result": "Won",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "NYR ML + EDM ML + PIT ML"
     },
     {
       "book": "Fanatics",
@@ -1572,7 +1596,9 @@
       "profit": 8.01,
       "result": "Won",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "UTA @ VGK"
     },
     {
       "book": "FanDuel",
@@ -1585,7 +1611,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "SGP",
+      "matchup": "PHI @ EDM"
     },
     {
       "book": "Bet365",
@@ -1598,7 +1626,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "PL",
+      "matchup": "FLA Panthers -1.5"
     },
     {
       "book": "Bet365",
@@ -1611,7 +1641,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Total",
+      "matchup": "WSH @ NJD Over 6.5"
     },
     {
       "book": "Bet365",
@@ -1624,7 +1656,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": true,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "PL",
+      "matchup": "COL Avalanche -1.5"
     },
     {
       "book": "Bet365",
@@ -1637,7 +1671,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "COL ML + MIN ML + BOS ML + BUF ML (4-leg, +10% boost)"
     },
     {
       "book": "Bet365",
@@ -1650,7 +1686,9 @@
       "profit": null,
       "result": "Open",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "CAR ML + COL ML + MIN ML + BOS ML + BUF ML (5-leg)"
     },
     {
       "book": "Fanatics",
@@ -1663,7 +1701,9 @@
       "profit": -2.37,
       "result": "Cashed Out",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "6-leg: FLA ML + NJD/WSH Over 7.5 + DAL ML + UTA ML + ANA ML + LAK ML"
     },
     {
       "book": "Fanatics",
@@ -1676,7 +1716,9 @@
       "profit": -5.0,
       "result": "Lost",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "bet_type": "Parlay",
+      "matchup": "6-leg: FLA ML + NJD/WSH Over 7.5 + DAL ML + UTA ML + ANA ML + LAK ML (re-bet after cash-out)"
     },
     {
       "date": "2026-11-16",
@@ -1691,7 +1733,11 @@
       "fancash": 0.04,
       "result": "Open",
       "profit": null,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "Parlay",
+      "matchup": "4-leg EPL ML parlay: Man City -275 (FUL vs MCI, Nov 21 5:30am), Chelsea -115 (LEE vs CHE, Nov 21 8:00am), Arsenal -170 (ARS vs NEW, Nov 21 10:30am), Liverpool -135 (MUN vs LIV, Nov 22 9:30am)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-15",
@@ -1707,7 +1753,11 @@
       "bet_id": "26459670000099816",
       "result": "Lost",
       "profit": -2.0,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "SGP",
+      "matchup": "VAN at UTA SGP: Sergachev 1+ Points -250 + Over 5.5 -180 + Utah -1.5 -140",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -1722,7 +1772,11 @@
       "fancash": 0.03,
       "result": "Lost",
       "profit": -2.0,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "SGP",
+      "matchup": "MTL at NYR SGP: Montreal -1.5 +200 + Caufield 1+ Points -190 + Hutson 1+ Points -150 + Over 4.5 -425",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-15",
@@ -1738,7 +1792,11 @@
       "bet_id": "26459171000089716",
       "result": "Won",
       "profit": 7.2,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "SGP",
+      "matchup": "EDM at PHI SGP: Player 1+ PTS + Edmonton ML + Total Under 8.5",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -1753,7 +1811,11 @@
       "boost": "2.50% parlay boost, +$0.11",
       "result": "Lost",
       "profit": -2.0,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "Parlay",
+      "matchup": "2-leg parlay: Utah -1.5 -134 (VAN at UTA) + Montreal ML -113 (MTL at NYR)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -1767,7 +1829,11 @@
       "payout": 1.88,
       "result": "Lost",
       "profit": -1.0,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "ML",
+      "matchup": "Montreal Canadiens ML -113 (MTL at NYR)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -1781,7 +1847,11 @@
       "payout": 1.74,
       "result": "Lost",
       "profit": -1.0,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "PL",
+      "matchup": "Utah Mammoth -1.5 -134 (VAN at UTA)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-17",
@@ -1795,7 +1865,11 @@
       "payout": 15.57,
       "result": "Open",
       "profit": null,
-      "funds": "cash"
+      "funds": "cash",
+      "bet_type": "Parlay",
+      "matchup": "6-leg player points: Schaefer 1+ Pts -200 (CBJ@NYI) + Tkachuk 1+ Pts -180 (EDM@FLA) + Morrissey 1+ Pts -120 (OTT@WPG) + Hagel 1+ Pts -180 (WSH@TBL) + Boldy 1+ Pts -290 (NSH@MIN) + Stenberg 1+ Pts -135 (CGY@SJS)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-17",
@@ -1810,7 +1884,11 @@
       "result": "Open",
       "profit": null,
       "funds": "cash",
-      "note": "Cam's build on the conservative 5-leg framework (EDM ML, WPG +1.5, TOR ML, ANA +1.5) plus NSH +1.5 and a Celebrini points leg. Bet365 balance $49.00 after placement ($52 - $3)."
+      "note": "Cam's build on the conservative 5-leg framework (EDM ML, WPG +1.5, TOR ML, ANA +1.5) plus NSH +1.5 and a Celebrini points leg. Bet365 balance $49.00 after placement ($52 - $3).",
+      "bet_type": "Parlay",
+      "matchup": "6-leg: EDM ML +102 (EDM@FLA) + WPG +1.5 -240 (OTT@WPG) + TOR ML -148 (TOR@CHI) + ANA +1.5 -210 (ANA@STL) + NSH +1.5 -160 (NSH@MIN) + Celebrini 1+ Pts -380 (CGY@SJS)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-17",
@@ -1825,7 +1903,11 @@
       "result": "Open",
       "profit": null,
       "funds": "cash",
-      "note": "Base return $27.80 + $1.84 boost = $29.64."
+      "note": "Base return $27.80 + $1.84 boost = $29.64.",
+      "bet_type": "Parlay",
+      "matchup": "4-leg: EDM ML +102 (EDM@FLA) + PHI ML +105 (BUF@PHI) + LA Kings +1.5 -210 (LAK@BOS) + WPG +1.5 -240 (OTT@WPG) (+7.5% parlay boost)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-17",
@@ -1840,7 +1922,11 @@
       "result": "Open",
       "profit": null,
       "funds": "cash",
-      "note": "Player-points heavy (3 prop legs incl. Bouchard, flagged once per standing rule). Model total EDM@FLA 6.36, so Over 6.5 is a slight lean against the model."
+      "note": "Player-points heavy (3 prop legs incl. Bouchard, flagged once per standing rule). Model total EDM@FLA 6.36, so Over 6.5 is a slight lean against the model.",
+      "bet_type": "SGP",
+      "matchup": "EDM at FLA SGP: Over 6.5 Goals + Draisaitl 2+ Points + Bouchard 1+ Points + Verhaeghe 1+ Points + FLA +1.5",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-17",
@@ -1855,7 +1941,11 @@
       "result": "Open",
       "profit": null,
       "funds": "cash",
-      "note": "Base return $27.10 + $2.51 boost = $29.61. ANA@STL Under 6.5 runs against the morning value check's Over 6.5 lean (+7.0pp); NSH@MIN Under 6.5 agrees with it (+7.3pp). Bet365 balance $47.00 after placement."
+      "note": "Base return $27.10 + $2.51 boost = $29.61. ANA@STL Under 6.5 runs against the morning value check's Over 6.5 lean (+7.0pp); NSH@MIN Under 6.5 agrees with it (+7.3pp). Bet365 balance $47.00 after placement.",
+      "bet_type": "Parlay",
+      "matchup": "5-leg totals: ANA@STL Under 6.5 -118 + NSH@MIN Under 6.5 -133 + CBJ@NYI Under 6.5 -180 + WSH@TBL Over 5.5 -190 + CGY@SJS Over 5.5 -131 (+10% parlay boost)",
+      "is_bonus": false,
+      "is_fancash": false
     },
     {
       "date": "2026-11-16",
@@ -1872,7 +1962,11 @@
       "result": "Open",
       "profit": null,
       "funds": "cash",
-      "note": "Placed Nov 16 8:38pm for Nov 17 games. Base payout $21.26 (+432), boosted to $29.89 (+647). Fanatics balance $150.00 cash + $1.06 FanCash after placement."
+      "note": "Placed Nov 16 8:38pm for Nov 17 games. Base payout $21.26 (+432), boosted to $29.89 (+647). Fanatics balance $150.00 cash + $1.06 FanCash after placement.",
+      "bet_type": "Parlay",
+      "matchup": "4-leg: LA Kings +1.5 -205 (LAK@BOS) + Edmonton +1.5 -255 (EDM@FLA) + Winnipeg +1.5 -235 (OTT@WPG) + San Jose ML -125 (CGY@SJS)",
+      "is_bonus": false,
+      "is_fancash": false
     }
   ]
 }
