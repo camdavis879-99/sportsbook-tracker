@@ -105,6 +105,13 @@ def main():
     games.sort(key=lambda x: x[0])
     if not games:
         print("No NHL games today.")
+        # Still write an empty slate: render.py reads today.json
+        # unconditionally, and a missing file fails the whole GitHub
+        # Pages build (Nov 20, 2026 — the deploy died here, so the
+        # CBB page refresh never went live either).
+        date_label = today.strftime("%A, %B %-d")
+        with open(os.path.expanduser(os.environ.get("NHL_JSON_PATH", "~/workspace/nhl-daily/today.json")), "w") as f:
+            json.dump({"date": date_label, "games": [], "league": []}, f, indent=2)
         return 0
 
     # Debug probe: does Action Network's odds page embed book-level odds?
