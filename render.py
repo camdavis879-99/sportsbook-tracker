@@ -1579,8 +1579,15 @@ def main():
     dst = sys.argv[2] if len(sys.argv) > 2 else "dist/index.html"
     nfl_src = sys.argv[3] if len(sys.argv) > 3 else "nfl.json"
     season_src = sys.argv[4] if len(sys.argv) > 4 else "season_stats.json"
-    with open(src) as f:
-        data = json.load(f)
+    try:
+        with open(src) as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        # A missing today.json (e.g. nhl_daily.py failed before writing)
+        # must not kill the whole deploy: render an empty slate so the
+        # NFL/CBB/Book Tracker tabs still publish.
+        today = datetime.now(ZoneInfo("America/Phoenix")).date()
+        data = {"date": today.strftime("%A, %B %-d"), "games": [], "league": []}
     cards = "\n".join(card(g) for g in data["games"])
     nfl = None
     if os.path.exists(nfl_src):
