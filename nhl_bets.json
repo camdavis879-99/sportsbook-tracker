@@ -1729,15 +1729,15 @@
       "description": "4-leg EPL ML parlay: Man City -275 (FUL vs MCI, Nov 21 5:30am), Chelsea -115 (LEE vs CHE, Nov 21 8:00am), Arsenal -170 (ARS vs NEW, Nov 21 10:30am), Liverpool -135 (MUN vs LIV, Nov 22 9:30am)",
       "odds": 604,
       "stake": 2.2,
-      "payout": 15.51,
       "fancash": 0.04,
-      "result": "Open",
-      "profit": null,
+      "result": "Lost",
+      "profit": -2.2,
       "funds": "cash",
       "bet_type": "Parlay",
       "matchup": "4-leg EPL ML parlay: Man City -275 (FUL vs MCI, Nov 21 5:30am), Chelsea -115 (LEE vs CHE, Nov 21 8:00am), Arsenal -170 (ARS vs NEW, Nov 21 10:30am), Liverpool -135 (MUN vs LIV, Nov 22 9:30am)",
       "is_bonus": false,
-      "is_fancash": false
+      "is_fancash": false,
+      "note": "Man City drew 1-1 at Fulham Sat Nov 21, killing the parlay. Settled Nov 23."
     },
     {
       "date": "2026-11-15",
