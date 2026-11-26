@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-17",
+  "as_of": "2026-11-26",
   "bets": [
     {
       "bet_type": "ML",
@@ -1967,6 +1967,72 @@
       "matchup": "4-leg: LA Kings +1.5 -205 (LAK@BOS) + Edmonton +1.5 -255 (EDM@FLA) + Winnipeg +1.5 -235 (OTT@WPG) + San Jose ML -125 (CGY@SJS)",
       "is_bonus": false,
       "is_fancash": false
+    },
+    {
+      "bet_type": "SGP",
+      "book": "Fanatics",
+      "date": "2026-11-25",
+      "is_bonus": false,
+      "is_fancash": false,
+      "matchup": "MTL at COL SGP: COL ML + COL player 1+ PTS + Over 5.5",
+      "odds": 320,
+      "profit": 6.4,
+      "result": "Won",
+      "stake": 2.0,
+      "payout": 8.4,
+      "note": "Bet ID 26473838000039909, placed Nov 25 6:18pm."
+    },
+    {
+      "bet_type": "SGP",
+      "book": "Fanatics",
+      "date": "2026-11-24",
+      "is_bonus": false,
+      "is_fancash": false,
+      "matchup": "VGK at EDM SGP: EDM ML + EDM player 1+ PTS + EDM player 1+ PTS + Over 5.5",
+      "odds": 480,
+      "profit": -2.0,
+      "result": "Lost",
+      "stake": 2.0,
+      "payout": "Bet ID 26472353000019909, placed Nov 24 5:33pm."
+    },
+    {
+      "bet_type": "Parlay",
+      "book": "Fanatics",
+      "date": "2026-11-22",
+      "is_bonus": false,
+      "is_fancash": false,
+      "matchup": "2-leg parlay: CAR -1.5 + EDM ML",
+      "odds": 422,
+      "profit": -1.0,
+      "result": "Lost",
+      "stake": 1.0,
+      "payout": "Bet ID not visible in screenshot."
+    },
+    {
+      "bet_type": "SGP+",
+      "book": "Fanatics",
+      "date": "2026-11-22",
+      "is_bonus": false,
+      "is_fancash": false,
+      "matchup": "SGP+: CAR -1.5 + EDM ML + EDM player 2+ PTS",
+      "odds": 601,
+      "profit": -2.0,
+      "result": "Lost",
+      "stake": 2.0,
+      "payout": "Bet ID 26468919000169916, placed Nov 22 8:19am."
+    },
+    {
+      "bet_type": "SGP",
+      "book": "Fanatics",
+      "date": "2026-11-22",
+      "is_bonus": false,
+      "is_fancash": false,
+      "matchup": "EDM at STL SGP: EDM ML + EDM player 2+ PTS",
+      "odds": 175,
+      "profit": -1.0,
+      "result": "Lost",
+      "stake": 1.0,
+      "payout": "Bet ID not visible in screenshot."
     }
   ]
 }
